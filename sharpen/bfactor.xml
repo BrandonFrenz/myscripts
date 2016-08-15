@@ -1,0 +1,15 @@
+<ROSETTASCRIPTS>
+    <TASKOPERATIONS>
+    </TASKOPERATIONS>
+    <SCOREFXNS>
+    </SCOREFXNS>
+    <MOVERS>
+        <LoadDensityMap name=loaddens mapfile="%%map%%"/>
+        <ScaleMapIntensities name=scaleBsharp res_low=999 res_high=3.3 b_sharpen=-100 fade_width=0.2 mask=0 outmap="sharpened"/>
+    </MOVERS>
+    <PROTOCOLS>
+	<Add mover=loaddens/>
+	<Add mover=scaleBsharp/>
+
+    </PROTOCOLS>
+</ROSETTASCRIPTS>

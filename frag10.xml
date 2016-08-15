@@ -1,0 +1,50 @@
+<ROSETTASCRIPTS>
+	<TASKOPERATIONS>
+	</TASKOPERATIONS>
+	<SCOREFXNS>
+		<dens weights="talaris2013" symmetric=0>
+   			<Reweight scoretype=atom_pair_constraint weight=0.5/>
+           <Reweight scoretype=fa_sol weight=0.0/>
+   		   <Reweight scoretype=elec_dens_fast weight=30.0/>
+		</dens>
+		<cendens weights="cen_std" symmetric=0>
+   			<Reweight scoretype=atom_pair_constraint weight=0.5/>
+   			<Reweight scoretype=elec_dens_fast weight=30.0/>
+        </cendens>
+       <cendens2 symmetric=0>
+   			<Reweight scoretype=vdw weight=1.0/>
+            <Reweight scoretype=elec_dens_fast weight=30/>
+            <Reweight scoretype=rama weight=1.0/>
+            <Reweight scoretype=omega weight=1.0/>
+            <Reweight scoretype=hbond_sr_bb weight=1.0/>
+            <Reweight scoretype=hbond_lr_bb weight=2.0/>
+       </cendens2>
+       <cenrot weights="score4_cenrot_relax" symmetric=0>
+           <Reweight scoretype=vdw weight=1.0/>
+           <Reweight scoretype=elec_dens_fast weight=30/>
+           <Reweight scoretype=rama weight=1.0/>
+           <Reweight scoretype=omega weight=1.0/>
+           <Reweight scoretype=hbond_sr_bb weight=2.0/>
+           <Reweight scoretype=hbond_lr_bb weight=2.0/>
+           <Reweight scoretype=cen_rot_pair weight=1.0/>
+           <Reweight scoretype=cen_rot_pair_ang weight=1.0/>
+           <Reweight scoretype=cen_rot_dun weight=1.0/>
+           <Reweight scoretype=cen_rot_env weight=0.0/> 
+           <Reweight scoretype=cen_rot_cbeta weight=0.0/>
+           <Set scale_sc_dens_byres="R:0.76,K:0.76,E:0.76,D:0.76,M:0.76,C:0.81,Q:0.81,H:0.81,N:0.81,T:0.81,S:0.81,Y:0.88,W:0.88,A:0.88,F:0.88,P:0.88,I:0.88,L:0.88,V:0.88"/>
+        </cenrot>
+	</SCOREFXNS>
+	<MOVERS>
+        <SetupForDensityScoring name=setup_dens/>
+        <FragmentExtension name=ext fasta="FrhA.fasta" scorefxn=dens censcorefxn=cendens cenrotscorefxn=cenrot beamwidth=100 fragtrials=200 masterbeamwidth=50 masterbeamcutoff=6.0
+            debug=0 dumpbeam=0 dumpfinalbeam=1 dumperrors=0 dumprms=0 dumpfragments=0 fragcluster=0 parametercheck=1 greedy=0
+            chainbreak=1.5 cartmin=0 cenbuild=1 continuous_weight=.1 rmscutoff=2.0 rmswindow=1 beamscorecutoff=2.0 fabonus=0.0
+            nativegrow=0 pack_min_cycles=0 minimize=1 fragmelt=2 minmelt=1 looporder=1 maxloopsize=1 direction=1 cenrot=1> fraglens=2 nfrags=200>
+            <Fragments fragfile=autopickedFrhA.200.3mers/>
+        </FragmentExtension>
+	</MOVERS>
+	<PROTOCOLS>
+		<Add mover=setup_dens/>
+        <Add mover=ext/>
+	</PROTOCOLS>
+</ROSETTASCRIPTS> 
