@@ -10,8 +10,6 @@ def main():
     args = parseargs()
     if args.chains == ['second']:
         args = get_second_chain(args)
-    print args.chains
-    exit()
     apply(args)
 
 
