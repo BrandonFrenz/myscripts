@@ -510,9 +510,18 @@ def convert_types(args):
     header,links,disulfs,residues,tailer = parse_pdbfile(args.pdb)
     newresidues = []
     resiudes = convert_MAN_to_pdb_format(residues,links)
+    resit=-1
     for res in residues:
+        resit+=1
         if args.formats == 'pdb':
             res.name = resid_to_pdbformat(res.name)
+            if len(residues) > resit+1:
+                if res.chain != residues[resit+1].chain:
+                    res.isterm = True
+                else:
+                    res.isterm = False
+            else:
+                res.isterm = True
         newatoms = []
         for atom in res.atoms:
             if args.formats == 'rosetta':

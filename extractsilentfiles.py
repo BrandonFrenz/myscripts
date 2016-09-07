@@ -16,7 +16,7 @@ def main():
         selectedtags = toptags(args,tagmap)
         grabandwrite(allmodels,selectedtags)
         #if args.extract == True:
-        extractfile('selected.silent',1)
+        extractfile(args,'selected.silent',1)
     if args.mode == 'count':
         allmodels = readsilentfiles(args)
 
@@ -27,16 +27,15 @@ def parseargs():
     parser.add_argument('-n','--number',type=float,help='the percentage cutoff or number of poses to extract')
     parser.add_argument('-c','--cores',type=int,default=1,help='the number of computers to use')
     parser.add_argument('-si','--scoreindex',type=int,default=1,help='The, 0 base, indexing for the score you want to use in the silentfile')
-    #parser.add_argument('-e','--extract',type=bool,default=False,action='store_true',
-    #        help='Extract the pdbs using the Rosetta extract_pdbs app. You need to change the path to point to the binary for this to work')
+    parser.add_argument('-ex','--executable',default='~/Desktop/Rosetta/main/source/bin/extract_pdbs.default.linuxgccrelease',help='The path to the extract pdbs executable')
     args = parser.parse_args()
     return args
 
 #Change this command to point to your executable of the extract_pdbs app
-def extractfile(silentfile,jobcount):
+def extractfile(args,silentfile,jobcount):
     print silentfile+" "+str(jobcount)
     path = "~/Desktop/Rosetta/main/source/bin/extract_pdbs.default.linuxgccrelease"
-    os.system('%s -in:file:silent %s -out::prefix %d -crystal_refine -inout:skip_connect_info' % (path,silentfile,jobcount))
+    os.system('%s -in:file:silent %s -out::prefix %d -crystal_refine -inout:skip_connect_info' % (args.executable,silentfile,jobcount))
 
 def toptags(args,tagmap):
     totalposes = len(sorted(tagmap.items(), key=lambda x:x[1],reverse=True))
@@ -138,7 +137,7 @@ def extractsilentfiles(args):
             jobs = []
             for i in range(0,args.cores):
                 silentfile = silentfiles[jobcount]
-                p = multiprocessing.Process(target=extractfile, args=(silentfile,jobcount),)
+                p = multiprocessing.Process(target=extractfile, args=(args,silentfile,jobcount))
                 jobs.append(p)
                 p.start() 
                 jobcount = jobcount + 1

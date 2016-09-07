@@ -1,74 +1,13 @@
 #!/usr/bin
 import re
-from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB.Polypeptide import PPBuilder
-from Bio.PDB import Residue
-from Bio.PDB import StructureAlignment
-from Bio.Align.Applications import ClustalwCommandline
-from Bio import AlignIO
 import amino_acids
 import os
+import numpy as np
 
 def get_pdb_id(pdbpath):
     pdbid = re.split('/|.pdb',pdbpath)[-2]
     return pdbid
 
-#Makes a file named alignment.fasta suitable for clustalw input
-def make_alignment_input(seq1,seq2):
-    newfile = []
-    newfile.append("> seq1 " + str(len(seq1)) + " residues\n")
-    newfile.append(seq1+"\n")
-    newfile.append("> seq2 " + str(len(seq2)) + " residues\n")
-    newfile.append(seq2+"\n")
-    with open ('alignment.fasta','w') as af:
-        af.write(''.join(newfile))
-
-#Makes and biopython alignment from two pdbfile inputs
-def make_structure_alignment(pdb1,pdb2):
-    seq1 = str(get_sequence(pdb1))
-    seq2 = str(get_sequence(pdb2))
-    s1 = get_bio_structure(pdb1)
-    pdbid = get_pdb_id(pdb1)
-    s2 = get_bio_structure(pdb2)
-    make_alignment_input(seq1,seq2)#produces an alignment file of the 2 sequences named alignment.fasta
-    cline = ClustalwCommandline('clustalw',infile='alignment.fasta')
-    cline()
-    falign = AlignIO.read("alignment.aln", "clustal")
-    salign = StructureAlignment(falign,s1,s2)
-    os.system('rm alignment.aln alignment.fasta alignment.dnd')
-    return salign
-
-def get_bio_structure(pdb):
-    pdbid = get_pdb_id(pdb)
-    parser = PDBParser()
-    s = parser.get_structure(pdbid,pdb)
-    return s
-
-#takes a pdbfile and returns the sequence
-def get_sequence(pdb):
-    s = get_bio_structure(pdb)
-    ppbuilder = PPBuilder()
-    model_nr = 1
-    poly_peps = ppbuilder.build_peptides(s,model_nr)
-    for polypep in poly_peps:
-        return polypep.get_sequence()
-
-#takes a biopython residue and returns the backbone heavy atoms with a different residue type
-def convert_bio_res(res,newtype):
-    #resid = res.id
-    #resname = newtype
-    resid = res.id
-    resname = newtype
-    ressegid = res.segid
-    backbone = ['N','C','CA','O']
-    if res.get_resname() != 'Gly' or newtype == 'Gly':
-        backbone.append(['CB'])
-    newres = Residue.Residue(resid,resname,ressegid)
-    for atom in res:
-        if atom.get_name() in backbone:
-            newres.add(atom)
-    return newres 
-        
 def convert_resis_to_ala(pdb,residuestochange):
     newpdb = []
     backbones = ['N','CA','C','O','CB']
@@ -118,6 +57,15 @@ def convert_resis(pdb,residuestochange,newrestype):
             newpdb.append(line)
     
     return newpdb
+
+def get_seq_from_resis(residues):
+    seq = []
+    for residue in residues:
+        if residue.name not in amino_acids.longer_names:
+            seq.append('X')
+        else:
+            seq.append(amino_acids.longer_names[residue.name])
+    return ''.join(seq)
 
 def write_pdb(pdbfile,name):
     with open(name,'w') as newpdb:
@@ -174,6 +122,27 @@ def get_residue_list(pdbfile):
     residues.append(currentres)
     return residues
 
+def count_cas(residues):
+    cacount = 0
+    for resi in residues:
+        for atom in resi.atoms:
+            if atom.atomid == ' CA ':
+                cacount+=1
+    return cacount
+
+def get_center_of_mass(residues):
+    total_cas = count_cas(residues)
+    cax = 0
+    cay = 0
+    caz = 0
+    for residue in residues:
+        ca = residue.ca()
+        cax += ca.x/total_cas
+        cay += ca.y/total_cas
+        caz += ca.z/total_cas
+    return [cax,cay,caz]
+
+
 #this function will result in ter statements being added whereever non continuous residue numbering occurs
 def add_ters_to_noncontres(residues):
     updated_residues = []
@@ -223,6 +192,31 @@ def format_pdb_coord(coord):
     newstr = ' '*(4-len(predec))+predec+'.'+postdec+'0'*(3-len(postdec))
     return newstr
 
+def atomlist_rms(atoms1,atoms2):
+    assert(len(atoms1) == len(atoms2)), 'unequal number of atoms exiting'
+    n = len(atoms1)
+    firstcoords = []
+    for atom in atoms1:
+        firstcoords.append([atom.x,atom.y,atom.z])
+
+    secondcoords = []
+    for atom in atoms2:
+        secondcoords.append([atom.x,atom.y,atom.z])
+    firstcoords = np.array(firstcoords)
+    secondcoords = np.array(secondcoords)
+    rms = np.linalg.norm(firstcoords-secondcoords)/np.sqrt(n)
+    return rms
+
+def atom_dist(atom1,atom2):
+    firstcoords = []
+    firstcoords.append([atom1.x,atom1.y,atom1.z])
+    secondcoords = []
+    secondcoords.append([atom2.x,atom2.y,atom2.z])
+    firstcoords = np.array(firstcoords)
+    secondcoords = np.array(secondcoords)
+
+    dist = np.linalg.norm(firstcoords-secondcoords)
+    return dist
 
 class Residue:
     def __init__(self,num,chain,name,atoms):
@@ -230,6 +224,14 @@ class Residue:
         self.chain = chain
         self.name = name
         self.atoms = atoms
+
+    #function assumes only 1 calpha
+    def ca(self):
+        for atom in self.atoms:
+            if atom.atomid == ' CA ':
+                return atom
+        print 'residue',self.name,self.num,'has no CA. exiting'
+        exit()
 
 class Atom:
     def __init__(self,record,num,atomid,ali,Acode,x,y,z,occupancy,tempfact,segid,element,charge):
