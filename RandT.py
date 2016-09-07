@@ -8,6 +8,10 @@ import random
 
 def main():
     args = parseargs()
+    if args.chains == ['second']:
+        args = get_second_chain(args)
+    print args.chains
+    exit()
     apply(args)
 
 
@@ -18,6 +22,14 @@ def parseargs():
     parser.add_argument('-c','--chains',default=['B'],nargs='+',help='The chains to move')
     args = parser.parse_args()
     return args
+
+def get_second_chain(args):
+    resis = pdbtools.get_residue_list(open(args.pdb,'r').readlines())
+    firstchain = resis[1].chain
+    for residue in resis:
+        if residue.chain != firstchain:
+            args.chains = [residue.chain]
+            return args
 
 def apply(args):
     resis = pdbtools.get_residue_list(open(args.pdb,'r').readlines())
