@@ -5,6 +5,7 @@ import pdbtools
 import numpy as np
 import math
 import random
+import amino_acids
 
 def main():
     args = parseargs()
@@ -17,7 +18,7 @@ def parseargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p','--pdb',help='The pdbfile to modify')
     parser.add_argument('-o','--output',default='R&T.pdb',help='The name of the output file')
-    parser.add_argument('-c','--chains',default=['B'],nargs='+',help='The chains to move')
+    parser.add_argument('-c','--chains',default=['all'],nargs='+',help='The chains to move')
     args = parser.parse_args()
     return args
 
@@ -47,50 +48,81 @@ def get_rotation_matrix(axis,theta):
 
 def rotate_residues(args,resis):
     #get matrix
-    #axis = pdbtools.get_center_of_mass(resis)
-    axis = [random.uniform(1,359),random.uniform(1,359),random.uniform(1,359)]
-    theta = random.uniform(1,359)
-    axis = np.asarray(axis)
-    axis = axis/math.sqrt(np.dot(axis,axis))
-    rot_matrix = get_rotation_matrix(axis,theta)
-    
-    #apply transform
+    chains = get_chains(args,resis)
     rot_resis = []
-    for resi in resis:
-        if resi.chain in args.chains:
-            rot_atoms = []
-            for atom in resi.atoms:
-                xyz = [atom.x,atom.y,atom.z]
-                newcoords = np.dot(rot_matrix, xyz)
-                atom.x = newcoords[0]
-                atom.y = newcoords[1]
-                atom.z = newcoords[2]
-                rot_atoms.append(atom)
-            resi.atoms = rot_atoms
-        rot_resis.append(resi)
+    for chain in chains:
+        #adds all the non moving residues to the list
+        if chain not in args.chains and args.chains[0] != 'all':
+            for res in resis:
+                if res.chain == chain:
+                    rot_resis.append(res)
+        #moves all the relevant residues
+        else:
+            print 'rotating',chain
+            axis = [random.uniform(1,359),random.uniform(1,359),random.uniform(1,359)]
+            theta = random.uniform(1,359)
+            axis = np.asarray(axis)
+            axis = axis/math.sqrt(np.dot(axis,axis))
+            rot_matrix = get_rotation_matrix(axis,theta)
+            
+            #apply transform
+            for resi in resis:
+                if resi.chain == chain:
+                    rot_atoms = []
+                    for atom in resi.atoms:
+                        xyz = [atom.x,atom.y,atom.z]
+                        newcoords = np.dot(rot_matrix, xyz)
+                        atom.x = newcoords[0]
+                        atom.y = newcoords[1]
+                        atom.z = newcoords[2]
+                        rot_atoms.append(atom)
+                    resi.atoms = rot_atoms
+                    rot_resis.append(resi)
+
     return rot_resis
 
+#move each chain so that it's COM is at the origin
 def com_to_origin(args,residues):
     
-    #get moving residues COM
-    moving_resis = []
-    for residue in residues:
-        if residue.chain in args.chains:
-            moving_resis.append(residue)
-    com = pdbtools.get_center_of_mass(moving_resis)
-    
+    chains = get_chains(args,residues)
     moved_residues = []
-    for residue in residues:
-        if residue.chain in args.chains:
-            movedatoms = []
-            for atom in residue.atoms:
-                atom.x -= com[0]
-                atom.y -= com[1]
-                atom.z -= com[2]
-                movedatoms.append(atom)
-            residue.atoms = movedatoms
-        moved_residues.append(residue)
+    for chain in chains:
+        if chain not in args.chains and args.chains[0] != 'all':
+            continue
+        #get moving residues COM
+        moving_resis = []
+        for residue in residues:
+            if residue.chain == chain:
+                moving_resis.append(residue)
+        com = pdbtools.get_center_of_mass(moving_resis)
+        
+        for residue in moving_resis:
+            if residue.chain == chain:
+                movedatoms = []
+                for atom in residue.atoms:
+                    atom.x -= com[0]
+                    atom.y -= com[1]
+                    atom.z -= com[2]
+                    movedatoms.append(atom)
+                residue.atoms = movedatoms
+                moved_residues.append(residue)
+    #add unmoved residues back to the list
+    for chain in chains:
+        if chain not in args.chains and args.chains[0] != 'all':
+            for residue in residues:
+                if residue.chain == chain:
+                    moved_residues.append(residue)
     return moved_residues
+
+def get_chains(args,resis):
+    chains = []
+    for resi in resis:
+        if resi.name not in amino_acids.longer_names:
+            continue
+        if resi.chain not in chains:
+            chains.append(resi.chain)
+    return chains
+    
 
 def write_pdb(args,resis):
     pdblines = pdbtools.make_pdblines_from_residues(resis)
