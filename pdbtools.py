@@ -207,6 +207,24 @@ def atomlist_rms(atoms1,atoms2):
     rms = np.linalg.norm(firstcoords-secondcoords)/np.sqrt(n)
     return rms
 
+def atomlist_GDTha(atoms1,atoms2):
+    assert(len(atoms1) == len(atoms2)), 'unequal number of atoms exiting'
+    atomit = 0
+    GDTha = 0.0
+    while atomit < len(atoms1):
+        dist = atom_dist(atoms1[atomit],atoms2[atomit])
+        if dist < 0.5:
+            GDTha+=1
+        if dist < 1.0:
+            GDTha+=1
+        if dist < 2.0:
+            GDTha +=1
+        if dist < 4.0:
+            GDTha +=1
+        atomit+=1
+    return GDTha/(atomit*4)
+
+
 def atom_dist(atom1,atom2):
     firstcoords = []
     firstcoords.append([atom1.x,atom1.y,atom1.z])
