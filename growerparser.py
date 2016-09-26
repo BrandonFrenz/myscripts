@@ -31,17 +31,26 @@ def parse_beamfile(beamfile):
                 torsions.append(float(data[it]))
                 it+=1
         
-        xyzs = []
+        bbresidues = []
         for i in range(0,total_res):
+            residue = []
             atomcount = int(data[it])
             it+=1
             for ii in range(0,atomcount):
-                atomxyz = []
+                #atomxyz = []
                 #loop over the 3 coordinates
-                for i in range(0,3):
-                    atomxyz.append(float(data[it]))
-                    it+=1
-            xyzs.append(atomxyz)
+                atomx = float(data[it])
+                it+=1
+                atomy = float(data[it])
+                it+=1
+                atomz = float(data[it])
+                it+=1
+                #for i in range(0,3):
+                #    atomxyz.append(float(data[it]))
+                #    it+=1
+                beam_atom = BEAM_ATOM(ii,atomx,atomy,atomz)
+                residue.append(beam_atom)
+            bbresidues.append(residue)
         
         sheets = []
         nsheets = int(data[it])
@@ -80,21 +89,21 @@ def parse_beamfile(beamfile):
         it+=1
         gdt = float(data[it])
         it+=1
-        beam = BEAM(total_res,total_lower,total_upper,step,lower,torsions,xyzs,sheets,bonus_score,score,rms,gdt)
+        beam = BEAM(total_res,total_lower,total_upper,step,lower,torsions,bbresidues,sheets,bonus_score,score,rms,gdt)
         solutionset.append(beam)
     return solutionset
         
                 
             
 class BEAM:
-    def __init__(self,total_res,total_lower,total_upper,step,lower,torsions,bbatoms,sheets,sheetbonus,score,rms,gdt):
+    def __init__(self,total_res,total_lower,total_upper,step,lower,torsions,bbresidues,sheets,sheetbonus,score,rms,gdt):
         self.total_res = total_res
         self.total_lower = total_lower
         self.total_upper = total_upper
         self.step = step
         self.lower = lower
         self.torsions = torsions
-        self.bbatoms = bbatoms
+        self.bbresidues = bbresidues
         self.sheets = sheets
         self.sheetbonus = sheetbonus
         self.score = score
@@ -109,3 +118,10 @@ class SHEET:
         self.translation = translation
         self.total_residues = total_residues
         self.torsions = torsions
+
+class BEAM_ATOM:
+    def __init__(self,atomid,x,y,z):
+        self.atomid = atomid
+        self.x = x
+        self.y = y
+        self.z = z

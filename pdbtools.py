@@ -186,6 +186,7 @@ def make_pdblines_from_residues(reslist):
     return pdbfile
 
 def format_pdb_coord(coord):
+    coord = float("{0:.3f}".format(coord))
     coord = str(coord).split('.')
     predec = coord[0]
     postdec = coord[1]
@@ -204,7 +205,7 @@ def atomlist_rms(atoms1,atoms2):
         secondcoords.append([atom.x,atom.y,atom.z])
     firstcoords = np.array(firstcoords)
     secondcoords = np.array(secondcoords)
-    rms = np.linalg.norm(firstcoords-secondcoords)/np.sqrt(n)
+    rms = np.sqrt(np.linalg.norm(firstcoords-secondcoords)*2/n)
     return rms
 
 def atomlist_GDTha(atoms1,atoms2):
@@ -266,3 +267,50 @@ class Atom:
         self.segid = segid
         self.element = element
         self.charge = charge
+
+def write_fragments(fragments,filename):
+    with open(filename,'w') as outfile:
+        for fragment in fragments:
+            if fragment.fragid == 'position:':
+                outfile.write('position:'+' '*(13-len(str(fragment.num)))+str(fragment.num)+' '+'neighbors:'+' '*(13-len(str(fragment.neighbors)))+str(fragment.neighbors)+'\n')
+                for line in fragment.lines:
+                    outfile.write(line)
+
+def parse_fragments(fragfile):
+    if 'position' in fragfile[0]:
+        fragments = parse_position_fragments(fragfile)
+        return fragments
+
+def parse_position_fragments(fragfile):
+    full_fragments = []
+    lines = []
+    fragid = ''
+    fragnum = ''
+    neighbors = ''
+    for line in fragfile:
+        if line.startswith('position:'):
+            if fragid != '':
+                fragments = FRAGMENT_LIST(fragid,fragnum,neighbors,lines)
+                full_fragments.append(fragments)
+                lines = []
+            line = line.split()
+            fragid = 'position:'
+            fragnum = int(line[1])
+            neighbors = int(line[3])
+        else:
+            lines.append(line)
+
+    fragments = FRAGMENT_LIST(fragid,fragnum,neighbors,lines)
+    full_fragments.append(fragments)
+    return full_fragments
+
+
+
+#currently a very crude representation of all the fragments
+class FRAGMENT_LIST:
+    #fragnum corresponds to the first residue in the fragment
+    def __init__(self,fragid,num,neighbors,lines):
+        self.fragid = fragid
+        self.num = num
+        self.neighbors = neighbors
+        self.lines = lines

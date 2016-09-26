@@ -3,7 +3,7 @@
       <RestrictToRepacking name=restrict/> 
 	</TASKOPERATIONS>
     <SCOREFXNS>
-        <densrelax weights="beta_nov_cart" symmetric=0>
+        <densrelax weights="beta_nov15_cart" symmetric=0>
    			<Reweight scoretype=atom_pair_constraint weight=0.5/>
    			<Reweight scoretype=elec_dens_fast weight=20.0/>
 		</densrelax>

@@ -19,10 +19,12 @@ def main():
         extractfile(args,'selected.silent',1)
     if args.mode == 'count':
         allmodels = readsilentfiles(args)
+    if args.mode == 'si':
+        print_score_index(args)
 
 def parseargs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m','--mode',help='which pdbs do you want to extract. All, top percentage, or top N')
+    parser.add_argument('-m','--mode',help='which pdbs do you want to extract. All, top percentage, or top N, use si to print the score indexing')
     parser.add_argument('-s','--silentfiles',nargs="+",help='the silent files to extract')
     parser.add_argument('-n','--number',type=float,help='the percentage cutoff or number of poses to extract')
     parser.add_argument('-c','--cores',type=int,default=1,help='the number of computers to use')
@@ -126,6 +128,18 @@ def grabandwrite(silentfile,tags):
     with open('selected.silent','w') as silentfile:
         for line in selectedmodels:
             silentfile.write(line)
+
+def print_score_index(args):
+    with open(args.silentfiles[0],'r') as sf:
+        for line in sf:
+            if line.startswith('SCORE:'):
+                data = line.split()
+                it = 0
+                for dat in data:
+                    if it != 0:
+                        print it,dat
+                    it+=1
+                break;
 
 def extractsilentfiles(args):
     args.cores
