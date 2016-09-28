@@ -6,7 +6,7 @@ import numpy as np
 
 def main():
     args = parseargs()
-    report_diversity(args)
+    print get_diversity(args)
 
 def parseargs():
     parser = argparse.ArgumentParser()
@@ -15,10 +15,13 @@ def parseargs():
     args = parser.parse_args()
     return args
 
-def report_diversity(args):
-    beams = growerparser.parse_beamfile(open(args.beamfile,'r').readlines())
+def get_diversity(args):
+    beams = []
+    with open(args.beamfile,'r') as beamfile:
+        beams = growerparser.parse_beamfile(beamfile.readlines())
     beams = filter_beams(args,beams)
-    print rms_variation(args,beams)
+    rms = rms_variation(args,beams)
+    return rms
 
 def filter_beams(args,beams):
     sorted_beams = sorted(beams, key=operator.attrgetter('score'))
@@ -33,18 +36,21 @@ def filter_beams(args,beams):
 
 def rms_variation(args,beams):
     caindex = 2
-    ca_coms = []
+    totalres = len(beams[0].bbresidues)
+    ca_coms = [(0,0,0)]*totalres
     for beam in beams:
+        resit = 0
         for residue in beam.bbresidues:
-            comx = 0
-            comy = 0
-            comz = 0
+            comx = ca_coms[resit][0]
+            comy = ca_coms[resit][1]
+            comz = ca_coms[resit][2]
             for atom in residue:
                 if atom.atomid == caindex:
-                    comx+=atom.x
-                    comy+=atom.y
-                    comz+=atom.z
-            ca_coms.append((comx,comy,comz))
+                    comx+=atom.x/totalres
+                    comy+=atom.y/totalres
+                    comz+=atom.z/totalres
+            ca_coms[resit] = ((comx,comy,comz))
+            resit+=1
     total_dist = 0
     total_cas = 0
     for beam in beams:
@@ -55,10 +61,13 @@ def rms_variation(args,beams):
                     com_coords = np.array(ca_coms[resit])
                     beam_coords = np.array((atom.x,atom.y,atom.z))
                     resit+=1
+                    start_dist = total_dist
                     total_dist+= np.linalg.norm(com_coords-beam_coords)*2
+                    end_dist = total_dist
+                    #print beam.score,end_dist-start_dist
                     total_cas+=1
     rms = np.sqrt(total_dist/total_cas)
     return rms
 
 
-main()
+#main()
