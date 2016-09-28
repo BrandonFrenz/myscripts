@@ -38,6 +38,7 @@ def rms_variation(args,beams):
     caindex = 2
     totalres = len(beams[0].bbresidues)
     ca_coms = [(0,0,0)]*totalres
+    totalbeams = len(beams)
     for beam in beams:
         resit = 0
         for residue in beam.bbresidues:
@@ -46,10 +47,13 @@ def rms_variation(args,beams):
             comz = ca_coms[resit][2]
             for atom in residue:
                 if atom.atomid == caindex:
-                    comx+=atom.x/totalres
-                    comy+=atom.y/totalres
-                    comz+=atom.z/totalres
+                    comx+=atom.x/totalbeams
+                    comy+=atom.y/totalbeams
+                    comz+=atom.z/totalbeams
             ca_coms[resit] = ((comx,comy,comz))
+            #if resit == 166:
+            #    print comx,comy,comz
+            #    exit()
             resit+=1
     total_dist = 0
     total_cas = 0
@@ -60,12 +64,11 @@ def rms_variation(args,beams):
                 if atom.atomid == caindex:
                     com_coords = np.array(ca_coms[resit])
                     beam_coords = np.array((atom.x,atom.y,atom.z))
-                    resit+=1
-                    start_dist = total_dist
-                    total_dist+= np.linalg.norm(com_coords-beam_coords)*2
-                    end_dist = total_dist
-                    #print beam.score,end_dist-start_dist
-                    total_cas+=1
+                    dist = np.linalg.norm(com_coords-beam_coords)*2
+                    if dist > 0:
+                        total_cas+=1
+                        resit+=1
+                        total_dist+=dist
     rms = np.sqrt(total_dist/total_cas)
     return rms
 
