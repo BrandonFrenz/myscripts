@@ -4,8 +4,12 @@ import re
 
 def main():
     args = parseargs()
-    args = parse_ranges(args)
     header,sequence = parse_fasta(args)
+    if args.mode == 'count':
+        print 'there are',len(sequence),'residues'
+        exit()
+
+    args = parse_ranges(args)
     sequence = trim_fasta(args,sequence)
     write_sequence(args,header,sequence)
 
@@ -14,6 +18,7 @@ def parseargs():
     parser.add_argument('-f','--fasta',help='The fasta file')
     parser.add_argument('-o','--output',help='The output file')
     parser.add_argument('-r','--ranges',nargs="+",help='The ranges to keep. use formation x-y')
+    parser.add_argument('-m','--mode',help='Use -m count to count the fasta')
     args = parser.parse_args()
     return args
 

@@ -46,7 +46,7 @@ def remove_residues(args):
         nameit = it
         if len(args.pdbs) == 1:
             nameit = ''
-        pdbname = args.output+"%s"%nameit+".pdb"
+        pdbname = args.output+"%s"%nameit
         if args.output == '0':
             pdbname = pdb
         pdbtools.write_pdb(newpdb,pdbname)

@@ -43,4 +43,4 @@ def FloatToPDBString(number):
     return pdbstr
 
 main()
-os.system('rm selectedpoints.txt')
+#os.system('rm selectedpoints.txt')

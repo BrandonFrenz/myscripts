@@ -1,5 +1,10 @@
 #!/usr/bin/python2.7
 
+def parse_unopened_beamfile(beamfile):
+    with open(beamfile,'r') as bf:
+        beams = parse_beamfile(bf.readlines())
+    return beams
+
 def parse_beamfile(beamfile):
     data = []
     for line in beamfile:

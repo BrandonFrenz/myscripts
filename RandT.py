@@ -32,7 +32,7 @@ def get_second_chain(args):
 
 def apply(args):
     resis = pdbtools.get_residue_list(open(args.pdb,'r').readlines())
-    resis = rotate_residues(args,resis)
+    #resis = rotate_residues(args,resis)
     resis = com_to_origin(args,resis)
     write_pdb(args,resis)
 
@@ -87,17 +87,17 @@ def com_to_origin(args,residues):
     chains = get_chains(args,residues)
     moved_residues = []
     for chain in chains:
-        if chain not in args.chains and args.chains[0] != 'all':
+        if chain not in args.chains and args.chains[0] != 'all' and args.chains[0] != 'one':
             continue
         #get moving residues COM
         moving_resis = []
         for residue in residues:
-            if residue.chain == chain:
+            if residue.chain == chain or args.chains[0] == 'one':
                 moving_resis.append(residue)
         com = pdbtools.get_center_of_mass(moving_resis)
         
         for residue in moving_resis:
-            if residue.chain == chain:
+            if residue.chain == chain or args.chains[0] == 'one':
                 movedatoms = []
                 for atom in residue.atoms:
                     atom.x -= com[0]
@@ -108,7 +108,7 @@ def com_to_origin(args,residues):
                 moved_residues.append(residue)
     #add unmoved residues back to the list
     for chain in chains:
-        if chain not in args.chains and args.chains[0] != 'all':
+        if chain not in args.chains and args.chains[0] != 'all' and args.chains[0] != 'one':
             for residue in residues:
                 if residue.chain == chain:
                     moved_residues.append(residue)

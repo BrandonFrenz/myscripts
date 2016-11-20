@@ -24,12 +24,12 @@
 	<MOVERS>
         <SetupForDensityScoring name=setup_dens/>
         SetupForSymmetry name=symm definition=trimer.symm/>
-        <FragmentExtension name=ext fasta="full.fasta" scorefxn=dens censcorefxn=cendens beamwidth=250 fragtrials=200 masterbeamwidth=250 masterbeamcutoff=3.0
+        <FragmentExtension name=ext fasta="full.fasta" scorefxn=dens censcorefxn=cendens beamwidth=32 fragtrials=200 masterbeamwidth=250 masterbeamcutoff=3.0
             debug=0 dumpbeam=0 dumpfinalbeam=0 dumperrors=1 dumprms=1 dumpfragments=0 fragcluster=0 parametercheck=0 
-            samplesheets=1 sheetcriteria=2 continuous_sheets=1 sheetbonus=.3 sheet_tolerance=.5
+            samplesheets=1 sheetcriteria=2 continuous_sheets=0 sheetbonus=.5 sheet_tolerance=.7
             greedy=1 read_from_file=0 comparatorrounds=100
             chainbreak=1.5 cartmin=0 continuous_weight=0.3 windowdensweight=30 rmscutoff=1.2 rmswindow=20 beamscorecutoff=0.85
-            nativegrow=0 pack_min_cycles=2 fafilter=1 minimize=1 fragmelt=2 minmelt=15 looporder=5 maxloopsize=30 direction=1
+            nativegrow=0 pack_min_cycles=2 fafilter=1 minimize=1 fragmelt=2 minmelt=15 looporder=1 maxloopsize=30 direction=1
             writelps=1 dumpcontext=1 writebeams=1 readbeams=%%readbeams%% storedbeams="%%beams%%" steps=%%steps%% pcount=%%pcount%% filterprevious=%%filterprevious%% filterbeams="%%filterbeams%%">
             fraglens=3 nfrags=100
             <Fragments fragfile=100.3mers/>

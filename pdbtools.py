@@ -67,6 +67,10 @@ def get_seq_from_resis(residues):
             seq.append(amino_acids.longer_names[residue.name])
     return ''.join(seq)
 
+def write_resis_to_pdb(resis,name):
+    pdblines = make_pdblines_from_residues(resis)
+    write_pdb(pdblines,name)
+
 def write_pdb(pdbfile,name):
     with open(name,'w') as newpdb:
         for line in pdbfile:
@@ -90,6 +94,11 @@ def atom_from_pdbline(line):
     charge = ''.join(ll[79:80])
     atom = Atom(record,num,atomid,ali,achar,x,y,z,occupancy,temp,segid,element,charge)
     return atom
+
+def get_unopened_residue_list(pdbfile):
+    with open(pdbfile,'r') as pfile:
+        residues = get_residue_list(pfile.readlines())
+    return residues
 
 def get_residue_list(pdbfile):
     residues = []
@@ -205,7 +214,7 @@ def atomlist_rms(atoms1,atoms2):
         secondcoords.append([atom.x,atom.y,atom.z])
     firstcoords = np.array(firstcoords)
     secondcoords = np.array(secondcoords)
-    rms = np.sqrt(np.linalg.norm(firstcoords-secondcoords)*2/n)
+    rms = np.sqrt((np.linalg.norm(firstcoords-secondcoords)*2)/n)
     return rms
 
 def atomlist_GDTha(atoms1,atoms2):
@@ -236,6 +245,15 @@ def atom_dist(atom1,atom2):
 
     dist = np.linalg.norm(firstcoords-secondcoords)
     return dist
+
+
+def get_cas(residues):
+    cas = []
+    for res in residues:
+        for atom in res.atoms:
+            if atom.atomid == ' CA ':
+                cas.append(atom)
+    return cas
 
 class Residue:
     def __init__(self,num,chain,name,atoms):
@@ -304,7 +322,10 @@ def parse_position_fragments(fragfile):
     full_fragments.append(fragments)
     return full_fragments
 
-
+def get_ca(resi):
+    for atom in resi.atoms:
+        if atom.atomid == ' CA ':
+            return atom
 
 #currently a very crude representation of all the fragments
 class FRAGMENT_LIST:

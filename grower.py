@@ -11,6 +11,9 @@ def main():
     if args.mode == 'dump':
         dumpbeam_xml(args)
         dump_pdbs(args)
+        if args.TER == True:
+            print 'Adding TER statements'
+            os.system('python ~/Desktop/scripts/addterstatements.py after*')
 
 def parseargs():
     parser = argparse.ArgumentParser()
@@ -23,6 +26,9 @@ def parseargs():
     parser.add_argument('-b','--beams',default='na',help='The beam file to use')
     parser.add_argument('-tb','--taboobeams',default='na',help='The taboo beams to use')
     parser.add_argument('-s','--steps',default=0,help='The number of steps to run in the loop grower')
+    parser.add_argument('--keepsheets',dest='keep_sheets',action='store_true')
+    parser.add_argument('--dontTER',dest='TER',action='store_false')
+    parser.set_defaults(feature=False,TER=True)
     args = parser.parse_args()
     return args
 
@@ -48,6 +54,11 @@ def dump_pdbs(args):
 
 def dumpbeam_xml(args):
     for line in fileinput.input(args.xml, inplace=1):
-           sys.stdout.write(re.sub("dumpbeam=\d+", "dumpbeam=1", line))
+        newline = re.sub("dumpbeam=\d+", "dumpbeam=1", line)
+        if args.keep_sheets == False:
+            newline = re.sub("samplesheets=\d+", "samplesheets=0", newline)
+        else:
+            newline = re.sub("samplesheets=\d+", "samplesheets=1", newline)
+        sys.stdout.write(newline)
 
 main()
