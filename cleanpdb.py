@@ -1,24 +1,15 @@
 #!/usr/local/bin/python2.7
 import sys
+import pdbtools
+import amino_acids
 
-pdbs = []
-count = 1
-while count < len(sys.argv):
-    pdbs.append(sys.argv[count])
-    count +=1
-
-for pdb in pdbs:
-    newfile = []
-    with open(pdb,'r') as pdbfile:
-        for line in pdbfile:
-            if line.startswith('ATOM'):
-                restype = line[17:20]
-                if 'UNK' in str(restype):
-                    continue
-                else:
-                    newfile.append(line)
-
-    newpdb = 'new'+str(pdb)
-    with open(newpdb,'w') as newpdbfile:
-        for line in newfile:
-            newpdbfile.write(line)
+def clean_pdbs(pdbs):
+    for pdb in pdbs:
+        residues = pdbtools.get_unopened_residue_list(pdb)
+        clean_resis = []
+        for residue in residues:
+            if residue.name not in amino_acids.longer_names:
+                continue
+            else:
+                clean_resis.append(residue)
+        pdbtools.write_resis_to_pdb(clean_resis,pdb)
