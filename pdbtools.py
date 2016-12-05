@@ -151,6 +151,13 @@ def get_center_of_mass(residues):
         caz += ca.z/total_cas
     return [cax,cay,caz]
 
+def strip_non_protein(residues):
+    stripped = []
+    for residue in residues:
+        if residue.name in amino_acids.longer_names:
+            stripped.append(residue)
+    return stripped
+
 
 #this function will result in ter statements being added whereever non continuous residue numbering occurs
 def add_ters_to_noncontres(residues):
@@ -254,6 +261,39 @@ def get_cas(residues):
             if atom.atomid == ' CA ':
                 cas.append(atom)
     return cas
+
+#returns a list containing the sequence of each chain
+def get_sequences(residues):
+    sequences = []
+    current_sequence = []
+    previouschain = ''
+    for residue in residues:
+        if residue.chain != previouschain and previouschain != '':
+            sequences.append(current_sequence)
+            current_sequence = []
+        if residue.name in amino_acids.longer_names:
+            current_sequence.append(amino_acids.longer_names[residue.name])
+        else:
+            current_sequence.append('X')
+        previouschain = residue.chain
+    if len(current_sequence) > 1:
+        sequences.append(current_sequence)
+    return sequences
+            
+
+def get_chain_resis(residues,chain):
+    chain_resis = []
+    for residue in residues:
+        if residue.chain == chain:
+            chain_resis.append(residue)
+    return chain_resis
+
+def get_chains(residues):
+    chains = []
+    for residue in residues:
+        if residue.chain not in chains:
+            chains.append(residue.chain)
+    return chains
 
 class Residue:
     def __init__(self,num,chain,name,atoms):
