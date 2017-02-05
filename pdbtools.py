@@ -85,8 +85,8 @@ def atom_from_pdbline(line):
     ali = ll[16]
     achar = ll[26]
     x = float(''.join(ll[30:38]))
-    y = float(''.join(ll[39:46]))
-    z = float(''.join(ll[47:54]))
+    y = float(''.join(ll[38:46]))
+    z = float(''.join(ll[46:54]))
     occupancy = ''.join(ll[55:60])
     temp = ''.join(ll[60:66])
     segid = ''.join(ll[72:76])
@@ -295,36 +295,7 @@ def get_chains(residues):
             chains.append(residue.chain)
     return chains
 
-class Residue:
-    def __init__(self,num,chain,name,atoms):
-        self.num = num
-        self.chain = chain
-        self.name = name
-        self.atoms = atoms
 
-    #function assumes only 1 calpha
-    def ca(self):
-        for atom in self.atoms:
-            if atom.atomid == ' CA ':
-                return atom
-        print 'residue',self.name,self.num,'has no CA. exiting'
-        exit()
-
-class Atom:
-    def __init__(self,record,num,atomid,ali,Acode,x,y,z,occupancy,tempfact,segid,element,charge):
-        self.record = record
-        self.num = num
-        self.atomid = atomid
-        self.ali = ali
-        self.Acode = Acode
-        self.x = x
-        self.y = y
-        self.z = z
-        self.occupancy = occupancy
-        self.tempfact = tempfact
-        self.segid = segid
-        self.element = element
-        self.charge = charge
 
 def write_fragments(fragments,filename):
     with open(filename,'w') as outfile:
@@ -367,6 +338,33 @@ def get_ca(resi):
         if atom.atomid == ' CA ':
             return atom
 
+def clean_pdbs(pdbs):
+    for pdb in pdbs:
+        residues = get_unopened_residue_list(pdb)
+        clean_resis = []
+        for residue in residues:
+            if residue.name not in amino_acids.longer_names:
+                continue
+            else:
+                clean_resis.append(residue)
+        write_resis_to_pdb(clean_resis,pdb)
+
+def get_sequence(residues, term_to_slash = True):
+    sequence = []
+    for residue in residues:
+        if residue.name in amino_acids.longer_names:
+            sequence.append(amino_acids.longer_names[residue.name])
+        else:
+            sequence.append('X')
+        if residue.isterm and term_to_slash:
+            sequence.append('/')
+    return sequence
+
+def make_point_to_MG(point,resnum):
+    atom = Atom('ATOM  ',resnum,' MG ',' ',' ',point[0],point[1],point[2],' ',' ',' ','MG',' ')
+    residue = Residue(resnum,'A','UNK',[atom])
+    return residue
+
 #currently a very crude representation of all the fragments
 class FRAGMENT_LIST:
     #fragnum corresponds to the first residue in the fragment
@@ -375,3 +373,34 @@ class FRAGMENT_LIST:
         self.num = num
         self.neighbors = neighbors
         self.lines = lines
+
+class Residue:
+    def __init__(self,num,chain,name,atoms):
+        self.num = num
+        self.chain = chain
+        self.name = name
+        self.atoms = atoms
+
+    #function assumes only 1 calpha
+    def ca(self):
+        for atom in self.atoms:
+            if atom.atomid == ' CA ':
+                return atom
+        print 'residue',self.name,self.num,'has no CA. exiting'
+        exit()
+
+class Atom:
+    def __init__(self,record,num,atomid,ali,Acode,x,y,z,occupancy,tempfact,segid,element,charge):
+        self.record = record
+        self.num = num
+        self.atomid = atomid
+        self.ali = ali
+        self.Acode = Acode
+        self.x = x
+        self.y = y
+        self.z = z
+        self.occupancy = occupancy
+        self.tempfact = tempfact
+        self.segid = segid
+        self.element = element
+        self.charge = charge
