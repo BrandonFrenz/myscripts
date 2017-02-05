@@ -103,25 +103,30 @@ def get_unopened_residue_list(pdbfile):
 def get_residue_list(pdbfile):
     residues = []
     previousresid = ('','')
+    previousicode = ''
+    previousname = ''
     currentres = ''
     linecount = 0
     for line in pdbfile:
         if line.startswith('ATOM') or line.startswith('HETATM'):
             ll = list(line)
             resnum = int(''.join(ll[22:26]))
+            icode = ll[26]
             chainid = ''.join(ll[21])
             currentresid = (resnum,chainid)
-            if previousresid != currentresid:   
+            resname = ''.join(ll[17:20])
+            if previousresid != currentresid or previousicode != icode or previousname != resname:   
                 previousresid = currentresid
+                previousicode = icode
+                previousname = resname
                 if currentres != '':
                     isterm = False
                     if pdbfile[linecount-1].startswith('TER'):
                         isterm = True
                     currentres.isterm = isterm
                     residues.append(currentres)
-                resname = ''.join(ll[17:20])
                 atom = atom_from_pdbline(line)
-                currentres = Residue(resnum,chainid,resname,[])
+                currentres = Residue(resnum,chainid,resname,icode,[])
                 currentres.atoms.append(atom)
             else:
                 atom = atom_from_pdbline(line)
