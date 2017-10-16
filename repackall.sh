@@ -1,7 +1,7 @@
 #!/bin/sh
 for i in *pdb
 do
-    ~/Desktop/Rosetta/main/source/bin/rosetta_scripts.default.linuxgccrelease  \
+    ~/Rosetta/main/source/bin/rosetta_scripts.default.linuxgccrelease  \
     -s $i \
     -parser:protocol $1 \
     -edensity:mapfile $2\

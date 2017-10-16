@@ -67,8 +67,8 @@ def get_seq_from_resis(residues):
             seq.append(amino_acids.longer_names[residue.name])
     return ''.join(seq)
 
-def write_resis_to_pdb(resis,name):
-    pdblines = make_pdblines_from_residues(resis)
+def write_resis_to_pdb(resis,name,sort=True):
+    pdblines = make_pdblines_from_residues(resis,sort)
     write_pdb(pdblines,name)
 
 def write_pdb(pdbfile,name):
@@ -156,6 +156,17 @@ def get_center_of_mass(residues):
         caz += ca.z/total_cas
     return [cax,cay,caz]
 
+#converts all modified residues to the standard format
+def convert_to_standard_aas(residues):
+    for res in residues:
+        if res.name in amino_acids.modres.keys():
+            res.name = amino_acids.modres[res.name]
+            newatoms = []
+            for atom in res.atoms:
+                atom.record = 'ATOM  '
+                newatoms.append(atom)
+            res.atoms = newatoms
+
 def strip_non_protein(residues):
     stripped = []
     for residue in residues:
@@ -174,10 +185,11 @@ def add_ters_to_noncontres(residues):
         updated_residues.append(res)
     return updated_residues
 
-def make_pdblines_from_residues(reslist):
+def make_pdblines_from_residues(reslist,sort=True):
     pdbfile = []
     previousres = (0,'0')
-    reslist = sorted(reslist, key=lambda x: (x.chain,x.num))
+    if sort:
+        reslist = sorted(reslist, key=lambda x: (x.chain,x.num))
     for res in reslist:
         previousres = (res.num,res.chain)
         for atom in res.atoms:
@@ -217,16 +229,13 @@ def format_pdb_coord(coord):
 def atomlist_rms(atoms1,atoms2):
     assert(len(atoms1) == len(atoms2)), 'unequal number of atoms exiting'
     n = len(atoms1)
-    firstcoords = []
-    for atom in atoms1:
-        firstcoords.append([atom.x,atom.y,atom.z])
-
-    secondcoords = []
-    for atom in atoms2:
-        secondcoords.append([atom.x,atom.y,atom.z])
-    firstcoords = np.array(firstcoords)
-    secondcoords = np.array(secondcoords)
-    rms = np.sqrt((np.linalg.norm(firstcoords-secondcoords)*2)/n)
+    atomit = 0
+    distsqr = 0
+    while atomit < len(atoms1):
+        dist = atom_dist(atoms1[atomit],atoms2[atomit])
+        distsqr+=dist*dist
+        atomit+=1
+    rms = np.sqrt(distsqr/atomit)
     return rms
 
 def atomlist_GDTha(atoms1,atoms2):
@@ -246,6 +255,13 @@ def atomlist_GDTha(atoms1,atoms2):
         atomit+=1
     return GDTha/(atomit*4)
 
+def get_backbones(res):
+    backbones = [' N  ',' CA ',' C  ',' CB ']
+    resbb = []
+    for atom in res.atoms:
+        if atom.atomid in backbones:
+            resbb.append(atom)
+    return resbb
 
 def atom_dist(atom1,atom2):
     firstcoords = []
@@ -266,6 +282,11 @@ def get_cas(residues):
             if atom.atomid == ' CA ':
                 cas.append(atom)
     return cas
+
+def get_ca(res):
+    for atom in res.atoms:
+        if atom.atomid == ' CA ':
+            return atom
 
 #returns a list containing the sequence of each chain
 def get_sequences(residues):
@@ -370,6 +391,17 @@ def make_point_to_MG(point,resnum):
     residue = Residue(resnum,'A','UNK',[atom])
     return residue
 
+def get_resid(residue):
+    return (residue.name,residue.chain,residue.num,residue.icode)
+
+def backbone_rmsd(res1,res2):
+    bb1 = get_backbones(res1)
+    bb2 = get_backbones(res2)
+    if len(bb1) != len(bb2):
+        print 'warning backbones are not equal in length returning -1 for rmsd'
+        return -1
+    return atomlist_rms(bb1,bb2)
+
 #currently a very crude representation of all the fragments
 class FRAGMENT_LIST:
     #fragnum corresponds to the first residue in the fragment
@@ -380,10 +412,11 @@ class FRAGMENT_LIST:
         self.lines = lines
 
 class Residue:
-    def __init__(self,num,chain,name,atoms):
+    def __init__(self,num,chain,name,icode,atoms):
         self.num = num
         self.chain = chain
         self.name = name
+        self.icode = icode
         self.atoms = atoms
 
     #function assumes only 1 calpha
@@ -393,6 +426,14 @@ class Residue:
                 return atom
         print 'residue',self.name,self.num,'has no CA. exiting'
         exit()
+
+    #def __eq__(self,other):
+    #    if type(other) == type(self):
+    #        return self.__dict__ == other.__dict__#self.num == other.num and self.name == other.name and self.chain == other.chain and self.icode == other.icode
+    #    return False
+
+    #def __ne__(self,other):
+    #    return not self.__eq__(other)
 
 class Atom:
     def __init__(self,record,num,atomid,ali,Acode,x,y,z,occupancy,tempfact,segid,element,charge):

@@ -1,39 +1,52 @@
 #!/usr/bin/python
+import argparse
+import pdbtools
 
-import string
-from sys import argv,stderr,stdout
-from os import popen,system
-from os.path import exists
-from amino_acids import longer_names
+def main():
+    args = parseargs()
+    renumber_pdb(args)
 
-assert( len(argv)>1)
-pdbname = argv[1]
+def parseargs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p','--pdb',help='The pdbfile')
+    parser.add_argument('-o','--output',help='The output file')
+    args = parser.parse_args()
+    return args
 
-lines = open(pdbname,'r').readlines()
+def renumber_pdb(args):
+    pdbfile = open(args.pdb).readlines()
+    residues = pdbtools.get_residue_list(pdbfile)
+    
+    #get the header
+    headlines = []
+    header = True
+    for line in pdbfile:
+        if line.startswith('ATOM') or line.startswith('HETATM'):
+            header = False
+        if header == True:
+            headlines.append(line)
+
+    tailLines = []
+    tailer = True
+    it = len(pdbfile)-1
+    while it > 0:
+        line = pdbfile[it]
+        if line.startswith('ATOM') or line.startswith('HETATM'):
+            tailer = False
+        if tailer == True:
+            tailLines.append(line)
+        it-=1
+
+    count = 1
+    for res in residues:
+        res.num = count
+        count+=1
+    reslines = pdbtools.make_pdblines_from_residues(residues,False)
+
+    with open(args.output,'w') as outfile:
+        outfile.write(''.join(headlines))
+        outfile.write(''.join(reslines))
+        outfile.write(''.join(tailLines))
 
 
-oldresnum = '   '
-count = 0;
-
-outid  = stdout
-
-for line in lines:
-        line_edit = line
-        if line[0:3] == 'TER':
-            continue
-
-        if line_edit[0:4] == 'ATOM' or line_edit[0:6] == 'HETATM':
-
-	    if not (line[16]==' ' or line[16]=='A'): continue
-
-            resnum = line_edit[22:26]
-            if not resnum == oldresnum:
-                count = count + 1
-            oldresnum = resnum
-
-            newnum = '%4d' % count
-            line_edit = line_edit[0:22] + newnum + line_edit[26:]
-
-        outid.write(line_edit)
-
-outid.close()
+main()

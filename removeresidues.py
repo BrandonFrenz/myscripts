@@ -31,6 +31,7 @@ def parse_residues(args):
 
 def remove_residues(args):
     it = 1
+    print len(args.pdbs)
     for pdb in args.pdbs:
         pdbfile = open(pdb,'r').readlines()
         residues = pdbtools.get_residue_list(pdbfile)
@@ -46,9 +47,10 @@ def remove_residues(args):
         nameit = it
         if len(args.pdbs) == 1:
             nameit = ''
-        pdbname = args.output+"%s"%nameit
+        pdbname = args.output+"%s"%nameit+'.pdb'
         if args.output == '0':
             pdbname = pdb
         pdbtools.write_pdb(newpdb,pdbname)
+        it+=1
 
 main()

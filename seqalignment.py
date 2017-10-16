@@ -35,7 +35,7 @@ def get_alignment(args):
     previousaa = ''
     print alignstring
     done = False
-    while !done:
+    while not done:
         aacount = 0
         for aa in alignstring:
             if aa != '-' and previousaa not in amino_acids.amino_acids:

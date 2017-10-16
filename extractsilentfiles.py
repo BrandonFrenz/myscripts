@@ -29,7 +29,7 @@ def parseargs():
     parser.add_argument('-n','--number',type=float,help='the percentage cutoff or number of poses to extract')
     parser.add_argument('-c','--cores',type=int,default=1,help='the number of computers to use')
     parser.add_argument('-si','--scoreindex',type=int,default=1,help='The, 0 base, indexing for the score you want to use in the silentfile')
-    parser.add_argument('-ex','--executable',default='~/Desktop/Rosetta/main/source/bin/extract_pdbs.default.linuxgccrelease',help='The path to the extract pdbs executable')
+    parser.add_argument('-ex','--executable',default='~/Rosetta/main/source/bin/extract_pdbs.default.linuxgccrelease',help='The path to the extract pdbs executable')
     args = parser.parse_args()
     return args
 
@@ -71,13 +71,14 @@ def readsilentfiles(args):
             newtag = 'thisisalsoatemptag'
             tagcounter = 1
             for line in silentfile:
-                if linecount <= 3 and header == True:
+                if linecount <= 2 and header == True:
                     allstructures.append(line)
-                elif linecount > 3:
+                elif linecount > 2:
                     if line.startswith('SCORE:'):
+                        score = line.split()[1]
                         totalpdbs +=1
                         tag = line.split()[-1]
-                        newtag = ('tag_%s_%s'%(sfilecount,tagcounter))
+                        newtag = ('tag_%s_%s_%s'%(sfilecount,tagcounter,score))
                         tagcounter+=1
                     line = re.sub(tag,newtag,line)
                     allstructures.append(line)
@@ -123,7 +124,7 @@ def grabandwrite(silentfile,tags):
             if addstruct == True:
                 selectedmodels.append(line)
         linecount+=1
-        if linecount > 3:
+        if linecount > 2:
             header = False
     with open('selected.silent','w') as silentfile:
         for line in selectedmodels:
