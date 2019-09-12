@@ -4,7 +4,7 @@ import os
 
 def main():
     args = parseargs()
-    download_pdb(args)
+    download_pdb(args.pdbids)
 
 def parseargs():
     parser = argparse.ArgumentParser()
@@ -12,13 +12,14 @@ def parseargs():
     args = parser.parse_args()
     return args
 
-def download_pdb(args):
-    for pdbid in args.pdbids:
+def download_pdb(pdbs):
+    for pdbid in pdbs:
         try:
             command = 'wget http://www.rcsb.org/pdb/files/%s.pdb.gz'%pdbid
             os.system(command) 
             os.system('gunzip %s.pdb.gz'%pdbid)
         except:
-            print 'error',pdbid,'could not be downloaded'
+            print('error',pdbid,'could not be downloaded')
 
-main()
+if __name__ == '__main__':
+    main()

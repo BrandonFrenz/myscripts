@@ -43,8 +43,8 @@ def print_sequence(args):
         previousnum = residue.num
         if residue.chain not in chains:
             chains.append(residue.chain)
-
         resit+=1
+    sys.stdout.write('\n')
     #print sequence
 
 def has_gap(residue1,residue2,dist_cutoff = 3.5):
@@ -58,7 +58,7 @@ def has_gap(residue1,residue2,dist_cutoff = 3.5):
                     else:
                         return False
     #this should not be reached
-    print 'No N and C atoms for the specificed residues were found'
+    print('No N and C atoms for the specificed residues were found')
     exit()
 
 main()

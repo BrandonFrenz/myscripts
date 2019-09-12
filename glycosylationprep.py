@@ -104,7 +104,7 @@ def get_header(pdbfile):
     header = True
     headerlines = []
     for line in pdbfile:
-        if line.startswith('ATOM') or line.startswith('HETATM') or line.startswith('SSBOND'):
+        if line.startswith('ATOM') or line.startswith('HETATM'):
             header = False
         linkline = False
         if line.startswith('LINK') or line.startswith('HETNAM') or line.startswith('SSBOND'):

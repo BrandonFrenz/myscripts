@@ -3,6 +3,9 @@ import re
 import amino_acids
 import os
 import numpy as np
+import gzip
+import string
+
 
 def get_pdb_id(pdbpath):
     pdbid = re.split('/|.pdb',pdbpath)[-2]
@@ -96,8 +99,13 @@ def atom_from_pdbline(line):
     return atom
 
 def get_unopened_residue_list(pdbfile):
-    with open(pdbfile,'r') as pfile:
-        residues = get_residue_list(pfile.readlines())
+    if pdbfile.endswith('.gz'):
+        gfile = gzip.open(pdbfile)
+        residues = get_residue_list(gfile.readlines())
+        gfile.close()
+    else:
+        with open(pdbfile,'r') as pfile:
+            residues = get_residue_list(pfile.readlines())
     return residues
 
 def get_residue_list(pdbfile):
@@ -321,7 +329,19 @@ def get_chains(residues):
             chains.append(residue.chain)
     return chains
 
-
+def relabel_chains(resis):
+    relabeled = []
+    chainindex = 0
+    previous_chain = None
+    for res in resis:
+        if previous_chain != None and previous_chain != res.chain:
+            chainindex+=1
+        print(chainindex)
+        newchain = string.ascii_uppercase[chainindex]
+        previous_chain = res.chain
+        res.chain = newchain
+        relabeled.append(res)
+    return relabeled
 
 def write_fragments(fragments,filename):
     with open(filename,'w') as outfile:
@@ -398,7 +418,7 @@ def backbone_rmsd(res1,res2):
     bb1 = get_backbones(res1)
     bb2 = get_backbones(res2)
     if len(bb1) != len(bb2):
-        print 'warning backbones are not equal in length returning -1 for rmsd'
+        print('warning backbones are not equal in length returning -1 for rmsd')
         return -1
     return atomlist_rms(bb1,bb2)
 
@@ -424,7 +444,7 @@ class Residue:
         for atom in self.atoms:
             if atom.atomid == ' CA ':
                 return atom
-        print 'residue',self.name,self.num,'has no CA. exiting'
+        print('residue',self.name,self.num,'has no CA. exiting')
         exit()
 
     #def __eq__(self,other):

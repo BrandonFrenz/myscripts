@@ -19,22 +19,22 @@ def grabchains(args):
             if line.startswith('HETNAM'):
                 chain = line[15]
                 if chain in args.chains:
-                    print(line.strip())
+                    print line.strip()
                     relevantTER = True
             elif line.startswith('ATOM') or line.startswith('LINK'):
                 chain = line[21]
                 if chain in args.chains:
-                    print(line.strip())
+                    print line.strip()
                     relevantTER = True
             elif line.startswith('SSBOND'):
                 chain = line[15]
                 if chain in args.chains:
-                    print(line.strip())
+                    print line.strip()
                     relevantTER = True
             else:
                 if line.startswith('TER'):
                     if relevantTER == True:
-                        print(line.strip())
+                        print line.strip()
                 relevantTER = False
 
 main()
