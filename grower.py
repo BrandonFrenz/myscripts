@@ -18,7 +18,7 @@ def main():
 def parseargs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-m','--mode',default='dump',help='The mode to run')
-    parser.add_argument('-ex','--executable',default='~/Desktop/Rosetta/main/source/bin/rosetta_scripts.default.linuxgccrelease')
+    parser.add_argument('-ex','--executable',default='~/Rosetta/main/source/bin/rosetta_scripts.default.linuxgccrelease')
     parser.add_argument('-x','--xml',default='parallel.xml',help='The xml')
     parser.add_argument('-p','--pdb',default='input.pdb',help='the input pdb')
     parser.add_argument('-d','--density',default='density.mrc',help='The density map')
@@ -26,6 +26,7 @@ def parseargs():
     parser.add_argument('-b','--beams',default='na',help='The beam file to use')
     parser.add_argument('-tb','--taboobeams',default='na',help='The taboo beams to use')
     parser.add_argument('-s','--steps',default=0,help='The number of steps to run in the loop grower')
+    parser.add_argument('-l','--loop',default=0,type=int,help='Change the loop order in the xml to this value if not 0')
     parser.add_argument('--keepsheets',dest='keep_sheets',action='store_true')
     parser.add_argument('--dontTER',dest='TER',action='store_false')
     parser.set_defaults(feature=False,TER=True)
@@ -54,11 +55,14 @@ def dump_pdbs(args):
 
 def dumpbeam_xml(args):
     for line in fileinput.input(args.xml, inplace=1):
-        newline = re.sub("dumpbeam=\d+", "dumpbeam=1", line)
+        newline = re.sub('dumpbeam="\d+"', 'dumpbeam="1"', line)
         if args.keep_sheets == False:
             newline = re.sub("samplesheets=\d+", "samplesheets=0", newline)
         else:
             newline = re.sub("samplesheets=\d+", "samplesheets=1", newline)
+        if args.loop != 0:
+            newline = re.sub('looporder="\d+"', 'looporder="%s"'%args.loop, newline)
+            newline = re.sub('looporder=\d+', 'looporder="%s"'%args.loop, newline)
         sys.stdout.write(newline)
 
 main()

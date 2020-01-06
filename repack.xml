@@ -1,39 +1,38 @@
 <ROSETTASCRIPTS>
 	<TASKOPERATIONS>
-      <RestrictToRepacking name=restrict/> 
+      <RestrictToRepacking name="restrict"/> 
 	</TASKOPERATIONS>
     <SCOREFXNS>
-        <densrelax weights="beta_nov15_cart" symmetric=0>
-   			<Reweight scoretype=atom_pair_constraint weight=0.5/>
-   			<Reweight scoretype=elec_dens_fast weight=20.0/>
-		</densrelax>
-		<dens weights="talaris2013" symmetric=0>
-   			<Reweight scoretype=atom_pair_constraint weight=0.5/>
-   			<Reweight scoretype=elec_dens_fast weight=20.0/>
-		</dens>
-		<cendens weights="score4_smooth" symmetric=0>
-   			<Reweight scoretype=atom_pair_constraint weight=0.5/>
-   			<Reweight scoretype=elec_dens_fast weight=20.0/>
-        </cendens>
-       <cendens2 symmetric=0>
-   			<Reweight scoretype=vdw weight=1.0/>
-            <Reweight scoretype=elec_dens_fast weight=20/>
-            <Reweight scoretype=rama weight=0.2/>
-            <Reweight scoretype=omega weight=0.2/>
-            <Reweight scoretype=hbond_sr_bb weight=2.0/>
-            <Reweight scoretype=hbond_lr_bb weight=2.0/>
-		</cendens2>
+        <ScoreFunction name="densrelax" weights="beta_nov15_cart" symmetric="0">
+   			<Reweight scoretype="atom_pair_constraint" weight="0.5"/>
+   			<Reweight scoretype="elec_dens_fast" weight="20.0"/>
+		</ScoreFunction>
+		<ScoreFunction name="dens" weights="beta_nov15" symmetric="0">
+   			<Reweight scoretype="atom_pair_constraint" weight="0.5"/>
+   			<Reweight scoretype="elec_dens_fast" weight="20.0"/>
+		</ScoreFunction>
+		<ScoreFunction name="cendens" weights="score4_smooth" symmetric="0">
+   			<Reweight scoretype="atom_pair_constraint" weight="0.5"/>
+   			<Reweight scoretype="elec_dens_fast" weight="20.0"/>
+        </ScoreFunction>
+       <ScoreFunction name="cendens2" symmetric="0">
+   			<Reweight scoretype="vdw" weight="1.0"/>
+            <Reweight scoretype="elec_dens_fast" weight="20"/>
+            <Reweight scoretype="rama" weight="0.2"/>
+            <Reweight scoretype="omega" weight="0.2"/>
+            <Reweight scoretype="hbond_sr_bb" weight="2.0"/>
+            <Reweight scoretype="hbond_lr_bb" weight="2.0"/>
+		</ScoreFunction>
 	</SCOREFXNS>
 	<MOVERS>
-		<SetupForDensityScoring name=setup_dens/>
-        SetupForSymmetry name=symm definition=h.symm/>
-        <PackRotamersMover name="pack" scorefxn=dens task_operations=restrict />
-        <FastRelax name=fastrelax scorefxn=densrelax cartesian=1 repeats=1/> 
+		<SetupForDensityScoring name="setup_dens"/>
+        <PackRotamersMover name="pack" scorefxn="dens" task_operations="restrict" />
+        <FastRelax name="fastrelax" scorefxn="densrelax" cartesian="1" repeats="1"/> 
 	</MOVERS>
 	<PROTOCOLS>
-        <Add mover=setup_dens/>
-        Add mover=pack/>
-        <Add mover=fastrelax/>
+        <Add mover="setup_dens"/>
+        <Add mover="fastrelax"/>
     </PROTOCOLS>
-    <OUTPUT scorefxn=densrelax/>
-</ROSETTASCRIPTS> 
+    <OUTPUT scorefxn="densrelax"/>
+ 
+</ROSETTASCRIPTS>

@@ -16,23 +16,32 @@ def parseargs():
 
 def writecas(args):
     with open(args.calphas,'r') as calphas:
+        it = 1
         for line in calphas:
-            line = line.split()
-            atomid = line[1]
-            x = format(float(line[2]), '.3f')
-            y = format(float(line[3]), '.3f')
-            z = format(float(line[4]), '.3f')
+            if line.startswith('ATOM'):
+                line = line.split()
+                atomid = line[1]
+                x = format(float(line[2]), '.3f')
+                y = format(float(line[3]), '.3f')
+                z = format(float(line[4]), '.3f')
+            else:
+                line = line.split()
+                atomid = it
+                x = format(float(line[0]), '.3f')
+                y = format(float(line[1]), '.3f')
+                z = format(float(line[2]), '.3f')
             pdbline = list(" "*80)
             pdbline[0:5] = "ATOM  "
-            pdbline[6:10] = " "*(5-len(atomid))+atomid
+            pdbline[6:10] = " "*(5-len(str(atomid)))+str(atomid)
             pdbline[12:15] = " MG "
             pdbline[17:20] = "UNK"
             pdbline[21] = "A"
-            pdbline[22:25] = " "*(4-len(atomid))+atomid
+            pdbline[22:25] = " "*(4-len(str(atomid)))+str(atomid)
             pdbline[30:37] = FloatToPDBString(x)
             pdbline[38:45] = FloatToPDBString(y)
             pdbline[46:54] = FloatToPDBString(z)
             print "".join(pdbline)
+            it+=1
 
 def FloatToPDBString(number):
     numstr = str(number)

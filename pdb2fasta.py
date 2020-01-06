@@ -1,84 +1,64 @@
 #!/usr/bin/python
-#
-# July 6, 2012
-# Ray Wang modified
-#
-import string
-from sys import argv,stdout
-from os import popen,system
-from os.path import exists,basename
-from amino_acids import longer_names
+import argparse
+import pdbtools
+import amino_acids
+import sys
 
+def main():
+    args = parseargs()
+    print_sequence(args)
 
-pdbnames = argv[1:]
+def parseargs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p','--pdb',help='The pdb')
+    parser.add_argument('-sg','--structure_gaps',dest='structure_gaps',action='store_true',default=False)
+    args = parser.parse_args()
+    return args
 
-#chainid = ' '
-#if len(argv)>2:
-#    chainid = argv[2]
+def print_sequence(args):
+    
+    residues = pdbtools.get_unopened_residue_list(args.pdb)
+    chains = []
+    previousnum = 'x'
+    
+    sys.stdout.write('>'+pdbtools.get_pdb_id(args.pdb)+', '+str(len(residues)) +' residues\n')
+    resit = 0
+    sequence = []
+    while resit < len(residues):
+        residue = residues[resit]
+        if args.structure_gaps and resit < len(residues) and resit != 0:
+            if has_gap(residues[resit-1],residue) and sequence[-1] is not '/':
+                sys.stdout.write('/\n')
+                sequence.append('/')
+        if (residue.chain not in chains and len(chains) != 0) or (previousnum != 'x' and residue.num != previousnum+1):
+            if sequence[-1] != '/':
+                sys.stdout.write('/\n')
+                sequence.append('/')
+        if residue.name in amino_acids.longer_names:
+            sys.stdout.write(amino_acids.longer_names[residue.name])
+            sequence.append(amino_acids.longer_names[residue.name])
+        else:
+            sys.stdout.write('X')
+            sequence.append('/')
+        previousnum = residue.num
+        if residue.chain not in chains:
+            chains.append(residue.chain)
+        resit+=1
+    sys.stdout.write('\n')
+    #print sequence
 
-for pdbname in pdbnames:
-#    if (pdbname[-4:] != '.pdb'):
-#        pdbname += '.pdb'
-
-    outfile = pdbname
-
-    removechain = 0
-    if argv.count('-nochain'):
-        removechain = 1
-
-    netpdbname = pdbname
-    assert( exists(netpdbname))
-    #print 'Reading ... '+netpdbname
-
-    lines = open(netpdbname,'r').readlines()
-
-    #outid = open( outfile, 'w')
-    #print 'Writing ... '+pdbname
-
-    #fastafile = pdbname+'.fasta'
-    #fastaid = open( fastafile, 'w')
-    #print 'Writing ... '+fastafile
-
-    fastaid = ""
-
-    oldresnum = '   '
-    count = 0;
-    for line in lines:
-        if (len(line)>20): # and (chainid == line[21]):
-            line_edit = line
-            if line[0:3] == 'TER':
-                fastaid += '\n'
-                #    break
-            elif (line[0:6] == 'HETATM') & (line[17:20]=='MSE'): #Selenomethionine
-                line_edit = 'ATOM  '+line[6:17]+'MET'+line[20:]
-                if (line_edit[12:14] == 'SE'):
-                    line_edit = line_edit[0:12]+' S'+line_edit[14:]
-                if len(line_edit)>75:
-                    if (line_edit[76:78] == 'SE'):
-                        line_edit = line_edit[0:76]+' S'+line_edit[78:]
-
-            if line_edit[0:4] == 'ATOM':
-                resnum = line_edit[23:26]
-                if not resnum == oldresnum:
-                    count = count + 1
-                    longname = line_edit[17:20]
-                    if longer_names.has_key(longname):
-                        fastaid += longer_names[longname] 
+def has_gap(residue1,residue2,dist_cutoff = 3.5):
+    for atom in residue1.atoms:
+        if atom.atomid == ' C  ':
+            for atom2 in residue2.atoms:
+                if atom2.atomid == ' N  ':
+                    dist = pdbtools.atom_dist(atom,atom2)
+                    if dist > dist_cutoff:
+                        return True
                     else:
-                        fastaid += 'X'
-                oldresnum = resnum
+                        return False
+    #this should not be reached
+    print('No N and C atoms for the specificed residues were found')
+    exit()
 
-                newnum = '%3d' % count
-                line_edit = line_edit[0:23] + newnum + line_edit[26:]
-                if removechain:
-                    line_edit = line_edit[0:21]+' '+line_edit[22:]
-
-                #outid.write(line_edit)
-    fastaid += '\n'
-
-    header = "> %s,  %s residues\n" %( basename(pdbname), count )
-    stdout.write(header + fastaid )
-    #fastaid 
-
-    #outid.close()
-    #fastaid.close()
+main()

@@ -1,5 +1,6 @@
 import string
 from operator import add
+from functools import reduce
  
 amino_acids = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', \
                'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
@@ -87,6 +88,12 @@ GES = {'F': -3.7, 'M': -3.4, 'I': -3.1, 'L': -2.8, 'V': -2.6,
        'N': 4.8,  'E': 8.2,  'K': 8.8,  'D': 9.2,  'R': 12.3}
  
 GES['X'] = reduce(add,GES.values())/20
+
+#taken from Kyte and Doolittle (according to Chimera) https://www.cgl.ucsf.edu/chimera/docs/UsersGuide/midas/hydrophob.html
+hydrophobicity = {'I': 4.5, 'V': 4.2, 'L': 3.8, 'F': 2.8, 'C': 2.5, 
+        'M': 1.9, 'A': 1.8, 'G': -0.4, 'T': -0.7, 'S': -0.8, 'W': -0.9,
+        'Y': -1.3, 'P': -1.6, 'H': -3.2, 'E': -3.5, 'Q': -3.5,
+        'D': -3.5, 'N': -3.5, 'K': -3.9, 'R': -4.5}
  
  
 #from http://astral.stanford.edu/scopseq-1.55/release-notes-1.55.txt
@@ -103,7 +110,31 @@ extra_longer_names={'TYY': 'Y', 'ARM': 'R', 'ARG': 'R', 'HTR': 'W', 'C5C': 'C', 
 ##     surface_area[l[0]] = float(l[1])
 ##     line = data.readline()
 ## data.close()
- 
+
+#Calculated In Rosetta using default values as of June 2019.
+GXG_SASA = {
+    "A": 115.88643373007068,
+    "C": 150.8753284974813,
+    "D": 152.14905427154898,
+    "E": 165.00996665047472,
+    "F": 207.0181412763483,
+    "G": 92.17669434708833,
+    "H": 201.8147097286792,
+    "I": 188.3383554704057,
+    "K": 166.09041078466706,
+    "L": 186.93101504582427,
+    "M": 170.80756257465498,
+    "N": 167.60103591587213,
+    "P": 153.04710762039846,
+    "Q": 178.94335670518484,
+    "R": 177.19848511730547,
+    "S": 133.54472098842487,
+    "T": 158.11506283301833,
+    "V": 161.00162797630674,
+    "W": 254.9851026790974,
+    "Y": 228.14940103560428
+}
+
 #surface area from Rost and Sander Proteins 20,216-226
 SA = {'A':106, 'C':135, 'D':163, 'E':194, 'F':197,
       'G': 84, 'H':184, 'I':169, 'K':205, 'L':164,

@@ -6,6 +6,7 @@ import amino_acids
 import operator
 import re
 import numpy
+from collections import defaultdict
 
 def main():
     args = parseargs()
@@ -20,6 +21,8 @@ def main():
         renumber_amino_acids(args)
     if args.method == 'subsugs':
         substitute_sugars(args)
+    if args.method == 'copy sugars':
+        copy_sugars(args)
     if args.method == 'stripsug':
         strip_non_aa(args)
     if args.method == 'striph':
@@ -56,6 +59,14 @@ def main():
         remove_duplicate_links(args)
     if args.method == 'checklinks':
         check_links(args)
+    if args.method == 'fix chain numbers':
+        fix_chain_numbers(args)
+    if args.method == 'reorder residues':
+        reorder_residues(args)
+    if args.method == 'grab residues':
+        grab_residues(args)
+    if args.method == 'match nums':
+        match_nums(args)
         
 
 def parseargs():
@@ -71,6 +82,7 @@ def parseargs():
     parser.add_argument('-nr','--newresnums',nargs="+",type=int,help='The matching number for the new residues')
     parser.add_argument('-f','--formats',help='The type of format you want, rosetta or pdb')
     parser.add_argument('-dc','--distancecut',type=float,default=3.5,help='The distance cutoff for links')
+    parser.add_argument('-orl','--override_links',type=int,default=0,help='Over ride the error that prevents deletion of links across chains being removed')
     args = parser.parse_args()
     return args
 
@@ -92,7 +104,7 @@ def get_header(pdbfile):
     header = True
     headerlines = []
     for line in pdbfile:
-        if line.startswith('ATOM') or line.startswith('HETATM') or line.startswith('SSBOND'):
+        if line.startswith('ATOM') or line.startswith('HETATM'):
             header = False
         linkline = False
         if line.startswith('LINK') or line.startswith('HETNAM') or line.startswith('SSBOND'):
@@ -124,11 +136,15 @@ def read_links(pdbfile):
     links = []
     for line in pdbfile:
         if line.startswith('LINK') or line.startswith('HETNAM'):
-            link = create_link_from_pdbline(line)
-            if 'LINK' in link.record:
-                links.append(link)
-            elif link.record == 'HETNAM':
-                links.append(link)
+            try:
+                link = create_link_from_pdbline(line)
+                if 'LINK' in link.record:
+                    links.append(link)
+                elif link.record == 'HETNAM':
+                    links.append(link)
+            except:
+                print 'skipping possible link',line
+                continue
     return links
 
 #creates a hetnam or link object based on line
@@ -258,7 +274,7 @@ def create_pdbline_from_link(link):
         line = list(' '*80)+list('\n')
         line[0:6] = link.record
         line[11:14] = link.res
-        line[15] = link.chain
+        line[15] = link.lchain
         line[16:20] = ' '*(4-len(str(link.num)))+str(link.num)
         line[22:38] = link.linkage
         return ''.join(line)
@@ -270,7 +286,29 @@ def fix_all_links(args):
     header,links,disulfs,residues,tailer  = parse_pdbfile(args.pdb)
     
     links = resolve_backward_links(links)
+    links = reorder_links(links)
     write_pdb(args,header,links,disulfs,residues,tailer)
+
+def reorder_links(links):
+    newlinks = []
+    while len(newlinks) < len(links):
+        current_lowest = None
+        for link in links:
+            if link in newlinks:
+                continue
+            if current_lowest == None:
+                current_lowest = link
+            if current_lowest.lchain > link.lchain:
+                current_lowest = link
+            elif current_lowest.lnum > link.lnum:
+                current_lowest = link
+            elif current_lowest.lnum == link.lnum:
+                if current_lowest.unum > link.unum:
+                    current_lowest = link
+        print current_lowest.lchain
+        newlinks.append(current_lowest)
+    return newlinks
+    return sorted(links, key = lambda x: (x.lchain, x.lnum, x.unum))
 
 def substitute_sugars(args):
     #positions
@@ -285,7 +323,7 @@ def substitute_sugars(args):
         if res.name in amino_acids.longer_names:
             hasalready = True
         for posres in position_residues:
-            if posres.num == res.num:
+            if posres.num == res.num and posres.chain == res.chain and posres.icode == res.icode:
                 hasalready = True
         if hasalready == False:
             position_residues.append(res)
@@ -297,6 +335,30 @@ def substitute_sugars(args):
         position_residues = only_chain_res
 
     write_pdb(args,sugar_header,sugar_links,sugar_disulfides,position_residues,sugar_tail)
+
+#rather than using the coordinates this function simple pastes the glycans blind into the new pdb
+def copy_sugars(args):
+    positionpdb = pdbtools.get_unopened_residue_list(args.positionpdb)
+    sugar_header,sugar_links,sugar_disulfides,sugar_residues,sugar_tail = parse_pdbfile(args.pdb)
+    nonaas = []
+    for res in sugar_residues:
+        if res.name not in amino_acids.longer_names:
+            nonaas.append(res)
+    newpdb = positionpdb+nonaas
+    pdbtools.write_resis_to_pdb(newpdb,args.output)
+
+#renumber the residues to match the positionpdb numbers
+def match_nums(args):
+    positionpdb = pdbtools.get_unopened_residue_list(args.positionpdb)
+    sugar_header,sugar_links,sugar_disulfides,sugar_residues,sugar_tail = parse_pdbfile(args.pdb)
+    nonaas = []
+    it = 0
+    print len(positionpdb),len(sugar_residues)
+    while it <len(sugar_residues):
+        #sugar_residues[it].num = positionpdb[it].num
+        sugar_residues[it],sugar_links,sugar_disulfides = renumber_residue_and_corresponding_links(sugar_residues[it],positionpdb[it].num,sugar_links,sugar_disulfides)
+        it+=1
+    write_pdb(args,sugar_header,sugar_links,sugar_disulfides,sugar_residues,sugar_tail)
 
 def parse_pdbfile(pdb):
     pdbfile = open(pdb,'r').readlines()
@@ -311,6 +373,7 @@ def get_disulfides_from_pdb(pdbfile):
     disulfides = []
     for line in pdbfile:
         if line.startswith('SSBOND'):
+            line = line.strip()
             disulf = get_disulfide_from_line(line)
             disulfides.append(disulf)
     return disulfides
@@ -327,7 +390,10 @@ def get_disulfide_from_line(line):
         uicode = ll[35]
         symm1 = ll[59:65]
         symm2 = ll[66:72]
-        length = float(''.join(ll[74:78]))
+        try:
+            length = float(''.join(ll[74:78]))
+        except:
+            length = ''.join(ll[74:78])
         disulf = DISULFIDE(record,bondnum,lchain,lresnum,licode,uchain,uresnum,uicode,symm1,symm2,length)
         return disulf
 
@@ -372,7 +438,7 @@ def grab_asym_unit(args):
     asymlinks = []
     for link in links:
         if link.record == 'HETNAM':
-            if link.chain in args.chains:
+            if link.lchain in args.chains:
                 asymlinks.append(link)
         if 'LINK' in link.record:
             if link.lchain in args.chains and link.uchain in args.chains:
@@ -380,7 +446,8 @@ def grab_asym_unit(args):
             elif link.lchain in args.chains or link.uchain in args.chains:
                 print "Invalid attempt to create a link between a residue on a chain you intended to keep and one being removed"
                 print link.lchain,link.lnum,link.uchain,link.unum
-                exit()
+                if args.override_links != 1:
+                    exit()
             else:
                 continue
     links = asymlinks
@@ -412,7 +479,7 @@ def write_pdb(args,header,links,disulfides,residues,tailer):
 def get_lines_from_links(links):
     lines = []
     #links = sorted(links, key=operator.itemgetter(links.record,links.lnum))
-    links = sorted(links, key=lambda x: (x.record,x.lnum))
+    #links = sorted(links, key=lambda x: (x.record,x.lnum))
     for link in links:
         lines.append(create_pdbline_from_link(link))
     return lines
@@ -461,7 +528,7 @@ def add_ters(args):
     it = 0
     ter_res = []
     while it< len(residues)-2:
-        if residues[it].num != residues[it+1].num-1:
+        if residues[it].num != residues[it+1].num-1 and residues[it].num != residues[it+1].num:
             residues[it].isterm = True
         it+=1
     write_pdb(args,header,links,disulfs,residues,tailer)
@@ -470,7 +537,7 @@ def renum_individual_res(args):
     header,links,disulfs,residues,tailer = parse_pdbfile(args.pdb)
     renumed = []
     for res in residues:
-        if res.num in args.residues:
+        if res.num in args.residues and (res.chain in args.chains or args.chains == 'ALL'):
             resindex = args.residues.index(res.num)
             newres = args.newresnums[resindex]
             res,links,disulfs = renumber_residue_and_corresponding_links(res,newres,links,disulfs)
@@ -663,7 +730,7 @@ def print_pdbnum(args):
     rosettanum = 1
     for res in residues:
         if rosettanum in args.residues:
-            print res.num,'is',rosettanum,'in rosetta numbering'
+            print res.name,res.num,res.chain,'is',rosettanum,'in rosetta numbering'
         rosettanum+=1
 
 def filter_links(args):
@@ -755,6 +822,151 @@ def check_links(args):
             if haslink == False:
                 print res.num,'is missing links'
 
+def parse_connect_records(pdbfile):
+    atom_connections = defaultdict(list)
+    for line in pdbfile:
+        if line.startswith('CONECT'):
+            line = line.strip()
+            atomid = int(line[6:11])
+            connect1 = line[11:16]
+            connect2 = line[16:21]
+            connect3 = line[21:26]
+            connect4 = line[26:31]
+            connections = [connect1,connect2,connect3,connect4]
+            for connection in connections:
+                try:
+                    if int(connection) > atomid:
+                        atom_connections[atomid].append(int(connection))
+                except:
+                    continue
+    return atom_connections
+
+def fix_chain_numbers(args):
+    pdbfile = open(args.pdb).readlines()
+    residues = pdbtools.get_unopened_residue_list(args.pdb)
+    connections = parse_connect_records(pdbfile)
+    res_connections = map_atom_connections_to_residue(residues,connections)
+    reslocation = -3
+    mid_chain = []
+    for cres in (sorted(res_connections.keys(), key=operator.attrgetter('num'))):
+        cresid = (cres.name,cres.num,cres.chain,cres.icode)
+        if cresid in mid_chain:
+            continue
+        chains = trace_chain(cres,res_connections)
+        for chain in chains:
+            print 'new chain'
+            for res in chain:
+                resid = (res.name,res.num,res.chain,res.icode)
+                print resid
+                mid_chain.append(resid)
+
+def trace_chain(res,res_connections):
+    connected = [res]
+    visited = {}
+    path = []
+    chains = []
+    while len(connected) > 0:
+        current_res = connected.pop()
+        if len(res_connections[current_res]) == 0:
+            path.append(current_res)
+            chains.append(copy.deepcopy(path))
+            path.pop()
+            continue
+        if current_res not in visited.keys():
+            visited[current_res] = 1
+        else:
+            visited[current_res] += 1
+        if len(res_connections[current_res]) == visited[current_res]-1:
+            continue
+        else:
+            connected_res = res_connections[current_res][visited[current_res]-2]
+            connected.append(connected_res)
+        connected.append(current_res)
+        if current_res not in path:
+            path.append(current_res)
+    return chains
+
+def map_atom_connections_to_residue(residues,connections):
+    connected_atoms = {}
+    res_connections = defaultdict(list)
+    for atomnum in connections.keys():
+        connected_resis = find_atomnum_residues([atomnum]+connections[atomnum],residues)
+        residue = connected_resis[atomnum]
+        #res_connections[connected_resis[connection].num] = []
+        for res in connected_resis.keys():
+            #if connected_resis[res] == residue:
+            if res_matches(residue,connected_resis[res]):
+                continue
+            if connected_resis[res] not in res_connections[residue]:
+                res_connections[residue].append(connected_resis[res])
+    return res_connections
+       
+def res_matches(res1,res2):
+    if res1.num == res2.num and res1.chain == res2.chain and res1.icode == res2.icode and res1.name == res2.name:
+        return True
+    else:
+        return False
+
+def find_atomnum_residues(nums,residues):
+    matching_residues = {}
+    for res in residues:
+        for atom in res.atoms:
+            if atom.num in nums:
+                matching_residues[atom.num] = res
+    return matching_residues
+
+def fix_connections(branches):
+    needsfixing = False
+    branchnums = []
+    for i in range(0,len(branches)):
+        branch = branches[i]
+        bnum = []
+        for res in branch:
+            if res.chain != branch[0].chain:
+                print 'error',res.name,res.num,res.chain,res.icode,'does not share a chain with the first residue in this branch'
+                exit()
+            if res.icode != ' ':
+                needsfixing = True
+
+def reorder_residues(args):
+    header,links,disulfides,residues,tailer = parse_pdbfile(args.pdb)
+    current_chain = ''
+    done = False
+    while not done:
+        done = True
+        for i in range(1,len(residues)):
+            if residues[i].chain != residues[i-1].chain:
+                continue
+            if residues[i].num < residues[i-1].num:
+                residues[i], residues[i-1] = residues[i-1],residues[i]
+                done = False
+            if i+1 < len(residues):
+                if residues[i].chain != residues[i+1].chain:
+                    residues[i].isterm = True
+                else:
+                    residues[i].isterm = False
+    write_pdb(args,header,links,disulfides,residues,tailer)
+
+#has no chain specifier super hacky
+def grab_residues(args):
+    header,links,disulfides,residues,tailer = parse_pdbfile(args.pdb)
+    newresidues = []
+    for res in residues:
+        if res.num in args.residues and (res.chain in args.chains or args.chains == 'ALL'):
+            newresidues.append(res)
+    newlinks = []
+    for link in links:
+        if (link.lnum in args.residues or link.unum in args.residues) and (link.lchain in args.chains or args.chains == 'ALL'):
+            print 'appending link'
+            newlinks.append(link)
+    newdisulfs = []
+    for disulf in disulfides:
+        if disulf.lnum in args.residues or disulf.unum in args.residues and (disulf.lchain in args.chains or args.chains  == 'ALL'):
+            newdisulfs.append(disulf)
+    write_pdb(args,header,newlinks,newdisulfs,newresidues,tailer)
+
+
+
 class LINK:
     def __init__(self,record,latom,lali,lres,lchain,lnum,licode,uatom,uali,ures,uchain,unum,uicode,sym1,sym2,dist):
         self.record = record
@@ -792,7 +1004,7 @@ class HETNAM:
     def __init__(self,record,res,chain,num,linkage):
         self.record = record
         self.res = res
-        self.chain = chain
+        self.lchain = chain
         self.num = num
         self.linkage = linkage
         self.lnum = num

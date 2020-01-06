@@ -3,6 +3,9 @@ import re
 import amino_acids
 import os
 import numpy as np
+import gzip
+import string
+
 
 def get_pdb_id(pdbpath):
     pdbid = re.split('/|.pdb',pdbpath)[-2]
@@ -67,8 +70,8 @@ def get_seq_from_resis(residues):
             seq.append(amino_acids.longer_names[residue.name])
     return ''.join(seq)
 
-def write_resis_to_pdb(resis,name):
-    pdblines = make_pdblines_from_residues(resis)
+def write_resis_to_pdb(resis,name,sort=True):
+    pdblines = make_pdblines_from_residues(resis,sort)
     write_pdb(pdblines,name)
 
 def write_pdb(pdbfile,name):
@@ -85,8 +88,8 @@ def atom_from_pdbline(line):
     ali = ll[16]
     achar = ll[26]
     x = float(''.join(ll[30:38]))
-    y = float(''.join(ll[39:46]))
-    z = float(''.join(ll[47:54]))
+    y = float(''.join(ll[38:46]))
+    z = float(''.join(ll[46:54]))
     occupancy = ''.join(ll[55:60])
     temp = ''.join(ll[60:66])
     segid = ''.join(ll[72:76])
@@ -96,32 +99,42 @@ def atom_from_pdbline(line):
     return atom
 
 def get_unopened_residue_list(pdbfile):
-    with open(pdbfile,'r') as pfile:
-        residues = get_residue_list(pfile.readlines())
+    if pdbfile.endswith('.gz'):
+        gfile = gzip.open(pdbfile)
+        residues = get_residue_list(gfile.readlines())
+        gfile.close()
+    else:
+        with open(pdbfile,'r') as pfile:
+            residues = get_residue_list(pfile.readlines())
     return residues
 
 def get_residue_list(pdbfile):
     residues = []
     previousresid = ('','')
+    previousicode = ''
+    previousname = ''
     currentres = ''
     linecount = 0
     for line in pdbfile:
         if line.startswith('ATOM') or line.startswith('HETATM'):
             ll = list(line)
             resnum = int(''.join(ll[22:26]))
+            icode = ll[26]
             chainid = ''.join(ll[21])
             currentresid = (resnum,chainid)
-            if previousresid != currentresid:   
+            resname = ''.join(ll[17:20])
+            if previousresid != currentresid or previousicode != icode or previousname != resname:   
                 previousresid = currentresid
+                previousicode = icode
+                previousname = resname
                 if currentres != '':
                     isterm = False
                     if pdbfile[linecount-1].startswith('TER'):
                         isterm = True
                     currentres.isterm = isterm
                     residues.append(currentres)
-                resname = ''.join(ll[17:20])
                 atom = atom_from_pdbline(line)
-                currentres = Residue(resnum,chainid,resname,[])
+                currentres = Residue(resnum,chainid,resname,icode,[])
                 currentres.atoms.append(atom)
             else:
                 atom = atom_from_pdbline(line)
@@ -151,6 +164,17 @@ def get_center_of_mass(residues):
         caz += ca.z/total_cas
     return [cax,cay,caz]
 
+#converts all modified residues to the standard format
+def convert_to_standard_aas(residues):
+    for res in residues:
+        if res.name in amino_acids.modres.keys():
+            res.name = amino_acids.modres[res.name]
+            newatoms = []
+            for atom in res.atoms:
+                atom.record = 'ATOM  '
+                newatoms.append(atom)
+            res.atoms = newatoms
+
 def strip_non_protein(residues):
     stripped = []
     for residue in residues:
@@ -169,10 +193,11 @@ def add_ters_to_noncontres(residues):
         updated_residues.append(res)
     return updated_residues
 
-def make_pdblines_from_residues(reslist):
+def make_pdblines_from_residues(reslist,sort=True):
     pdbfile = []
     previousres = (0,'0')
-    reslist = sorted(reslist, key=lambda x: (x.chain,x.num))
+    if sort:
+        reslist = sorted(reslist, key=lambda x: (x.chain,x.num))
     for res in reslist:
         previousres = (res.num,res.chain)
         for atom in res.atoms:
@@ -212,16 +237,13 @@ def format_pdb_coord(coord):
 def atomlist_rms(atoms1,atoms2):
     assert(len(atoms1) == len(atoms2)), 'unequal number of atoms exiting'
     n = len(atoms1)
-    firstcoords = []
-    for atom in atoms1:
-        firstcoords.append([atom.x,atom.y,atom.z])
-
-    secondcoords = []
-    for atom in atoms2:
-        secondcoords.append([atom.x,atom.y,atom.z])
-    firstcoords = np.array(firstcoords)
-    secondcoords = np.array(secondcoords)
-    rms = np.sqrt((np.linalg.norm(firstcoords-secondcoords)*2)/n)
+    atomit = 0
+    distsqr = 0
+    while atomit < len(atoms1):
+        dist = atom_dist(atoms1[atomit],atoms2[atomit])
+        distsqr+=dist*dist
+        atomit+=1
+    rms = np.sqrt(distsqr/atomit)
     return rms
 
 def atomlist_GDTha(atoms1,atoms2):
@@ -241,6 +263,13 @@ def atomlist_GDTha(atoms1,atoms2):
         atomit+=1
     return GDTha/(atomit*4)
 
+def get_backbones(res):
+    backbones = [' N  ',' CA ',' C  ',' CB ']
+    resbb = []
+    for atom in res.atoms:
+        if atom.atomid in backbones:
+            resbb.append(atom)
+    return resbb
 
 def atom_dist(atom1,atom2):
     firstcoords = []
@@ -261,6 +290,11 @@ def get_cas(residues):
             if atom.atomid == ' CA ':
                 cas.append(atom)
     return cas
+
+def get_ca(res):
+    for atom in res.atoms:
+        if atom.atomid == ' CA ':
+            return atom
 
 #returns a list containing the sequence of each chain
 def get_sequences(residues):
@@ -295,36 +329,19 @@ def get_chains(residues):
             chains.append(residue.chain)
     return chains
 
-class Residue:
-    def __init__(self,num,chain,name,atoms):
-        self.num = num
-        self.chain = chain
-        self.name = name
-        self.atoms = atoms
-
-    #function assumes only 1 calpha
-    def ca(self):
-        for atom in self.atoms:
-            if atom.atomid == ' CA ':
-                return atom
-        print 'residue',self.name,self.num,'has no CA. exiting'
-        exit()
-
-class Atom:
-    def __init__(self,record,num,atomid,ali,Acode,x,y,z,occupancy,tempfact,segid,element,charge):
-        self.record = record
-        self.num = num
-        self.atomid = atomid
-        self.ali = ali
-        self.Acode = Acode
-        self.x = x
-        self.y = y
-        self.z = z
-        self.occupancy = occupancy
-        self.tempfact = tempfact
-        self.segid = segid
-        self.element = element
-        self.charge = charge
+def relabel_chains(resis):
+    relabeled = []
+    chainindex = 0
+    previous_chain = None
+    for res in resis:
+        if previous_chain != None and previous_chain != res.chain:
+            chainindex+=1
+        print(chainindex)
+        newchain = string.ascii_uppercase[chainindex]
+        previous_chain = res.chain
+        res.chain = newchain
+        relabeled.append(res)
+    return relabeled
 
 def write_fragments(fragments,filename):
     with open(filename,'w') as outfile:
@@ -367,6 +384,44 @@ def get_ca(resi):
         if atom.atomid == ' CA ':
             return atom
 
+def clean_pdbs(pdbs):
+    for pdb in pdbs:
+        residues = get_unopened_residue_list(pdb)
+        clean_resis = []
+        for residue in residues:
+            if residue.name not in amino_acids.longer_names:
+                continue
+            else:
+                clean_resis.append(residue)
+        write_resis_to_pdb(clean_resis,pdb)
+
+def get_sequence(residues, term_to_slash = True):
+    sequence = []
+    for residue in residues:
+        if residue.name in amino_acids.longer_names:
+            sequence.append(amino_acids.longer_names[residue.name])
+        else:
+            sequence.append('X')
+        if residue.isterm and term_to_slash:
+            sequence.append('/')
+    return sequence
+
+def make_point_to_MG(point,resnum):
+    atom = Atom('ATOM  ',resnum,' MG ',' ',' ',point[0],point[1],point[2],' ',' ',' ','MG',' ')
+    residue = Residue(resnum,'A','UNK',[atom])
+    return residue
+
+def get_resid(residue):
+    return (residue.name,residue.chain,residue.num,residue.icode)
+
+def backbone_rmsd(res1,res2):
+    bb1 = get_backbones(res1)
+    bb2 = get_backbones(res2)
+    if len(bb1) != len(bb2):
+        print('warning backbones are not equal in length returning -1 for rmsd')
+        return -1
+    return atomlist_rms(bb1,bb2)
+
 #currently a very crude representation of all the fragments
 class FRAGMENT_LIST:
     #fragnum corresponds to the first residue in the fragment
@@ -375,3 +430,43 @@ class FRAGMENT_LIST:
         self.num = num
         self.neighbors = neighbors
         self.lines = lines
+
+class Residue:
+    def __init__(self,num,chain,name,icode,atoms):
+        self.num = num
+        self.chain = chain
+        self.name = name
+        self.icode = icode
+        self.atoms = atoms
+
+    #function assumes only 1 calpha
+    def ca(self):
+        for atom in self.atoms:
+            if atom.atomid == ' CA ':
+                return atom
+        print('residue',self.name,self.num,'has no CA. exiting')
+        exit()
+
+    #def __eq__(self,other):
+    #    if type(other) == type(self):
+    #        return self.__dict__ == other.__dict__#self.num == other.num and self.name == other.name and self.chain == other.chain and self.icode == other.icode
+    #    return False
+
+    #def __ne__(self,other):
+    #    return not self.__eq__(other)
+
+class Atom:
+    def __init__(self,record,num,atomid,ali,Acode,x,y,z,occupancy,tempfact,segid,element,charge):
+        self.record = record
+        self.num = num
+        self.atomid = atomid
+        self.ali = ali
+        self.Acode = Acode
+        self.x = x
+        self.y = y
+        self.z = z
+        self.occupancy = occupancy
+        self.tempfact = tempfact
+        self.segid = segid
+        self.element = element
+        self.charge = charge
