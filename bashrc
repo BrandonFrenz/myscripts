@@ -6,7 +6,8 @@ alias tmn='tmux new -s'
 #source /usr/local/phenix-1.12-2829/phenix_env.sh
 
 #make ls command show type specific colors
-alias ls='ls -G'
+#alias ls='ls -G'
+alias ls='ls --color=auto'
 alias chimera='/Applications/Chimera.app/Contents/MacOS/chimera'
 export PHENIX_TRUST_OTHER_ENV=1
 
