@@ -34,3 +34,6 @@ export ARTI_NAME=brandon
 export ARTI_PASS=u8#19o5N
 export OE_LICENSE='/Users/brandonfrenz/oe_license.txt'
 export ROSETTA_MAIN='/Users/brandonfrenz/rosetta-main/'
+
+LS_COLORS=$LS_COLORS:'di=1;34:ow=1;34:'; export LS_COLORS
+export PS1="\W \$"
