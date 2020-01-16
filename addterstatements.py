@@ -24,7 +24,7 @@ def allthesame():
     terminalres = []
     load_pdbs(pdbs)
     find_gaps(pdbs[0], terminalres)
-    print terminalres
+    print(terminalres)
     for i in pdbs:
         add_ters(i, terminalres)
 
@@ -74,7 +74,7 @@ def add_ters(name, terminalres):
         for line in pdb:
             if line.startswith('ATOM'):
                 splitline = line.strip().split()
-                resnum = int(splitline[5])
+                resnum = int(''.join(line[23:26]))
                 if resnum != previousresnum and previousresnum in terminalres:
                     newpdb.append('TER\n')
                 previousresnum = resnum
