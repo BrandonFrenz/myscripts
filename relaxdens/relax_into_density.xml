@@ -1,0 +1,16 @@
+<ROSETTASCRIPTS>
+    <SCOREFXNS>
+        <ScoreFunction name="dens_sf" weights="beta_cart" symmetric="0">
+            <Reweight scoretype="elec_dens_fast" weight="20.0"/>
+        </ScoreFunction>
+    </SCOREFXNS>
+    <MOVERS>
+        <SetupForDensityScoring name="setup_dens"/>
+        <FastRelax name="fastrelax" scorefxn="dens_sf" cartesian="1" repeats="4"/>
+    </MOVERS>
+    <PROTOCOLS>
+        <Add mover="setup_dens"/>
+        <Add mover="fastrelax"/>
+    </PROTOCOLS>
+    <OUTPUT scorefxn="dens_sf"/>
+</ROSETTASCRIPTS>
