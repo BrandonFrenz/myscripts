@@ -6,7 +6,6 @@ import pdbtools
 def main():
     args = parseargs()
     args = parse_residues(args)
-    print len(args.res1),len(args.res2)
     copy_atoms(args)
 
 def parseargs():
@@ -53,7 +52,7 @@ def copy_atoms(args):
     resmatch = 0
     resis_to_copy = []
     for residue in residues1:
-        print (residue.chain,residue.num)
+        print(residue.chain,residue.num)
         if (residue.chain,residue.num) in args.res1:
             resis_to_copy.append(residue)
 
