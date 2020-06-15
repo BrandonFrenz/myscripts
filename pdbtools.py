@@ -36,6 +36,13 @@ def convert_resis_to_ala(pdb,residuestochange):
     
     return newpdb
 
+def convert_to_gly(residue):
+    backbones = get_backbones(residue)
+    residue.atoms = backbones
+    residue.name = 'GLY'
+    return residue
+     
+
 def convert_resis(pdb,residuestochange,newrestype):
     newpdb = []
     backbones = ['N','CA','C','O','CB']

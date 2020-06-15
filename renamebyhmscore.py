@@ -13,13 +13,10 @@ def parse_scores(scorefile):
     scores = []
     with open(scorefile, 'r') as inf:
         for line in inf:
-            if line.startswith('SCORE:'):
-                data = line.split()
-                if data[1] == 'total_score':
-                    continue
-                score = float(data[1])
-                tag = data[-1]
-                scores.append((score, tag))
+            print(line)
+            tag = line.split(':')[0]
+            score = float(line.split()[-1])
+            scores.append((score, tag))
     return scores
 
 
@@ -29,9 +26,9 @@ def main():
     scores = sorted(scores)
     for rank, pair in enumerate(scores):
         score = pair[0]
-        index=rank+1
-        newname = f'rank{index}_{score}.pdb'
-        pdb = f'{pair[1]}.pdb'
+        count=rank+1
+        newname = f'rank{count}_{score}.pdb'
+        pdb = f'{pair[1]}'
         if not os.path.isfile(pdb):
             print(f'Skiipping {pdb}. File is missing')
             continue
