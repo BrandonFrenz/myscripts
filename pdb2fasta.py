@@ -29,7 +29,8 @@ def print_sequence(args):
             residue = residues[resit]
             if args.structure_gaps and resit < len(residues) and resit != 0:
                 if has_gap(residues[resit-1],residue) and sequence[-1] is not '/':
-                    sys.stdout.write('/\n')
+                    sys.stdout.write('/')
+                    #sys.stdout.write('\n')
                     sequence.append('/')
             if (residue.chain not in chains and len(chains) != 0) or (previousnum != 'x' and residue.num != previousnum+1):
                 if sequence[-1] != '/':

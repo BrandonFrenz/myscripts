@@ -49,6 +49,13 @@ def main():
     aln_seq = align(seq, fasta_seq)
 
     renumbered_resis = renumber_residues(target_resis, args.chain, aln_seq, args.offset)
+    het_resis = []
+    for res in resis:
+        record = res.atoms[0].record
+        if record == 'HETATM':
+            het_resis.append(res)
+    for res in het_resis:
+        renumbered_resis.append(res)
     pdbtools.write_resis_to_pdb(renumbered_resis, args.output, False)
 
 if __name__ == '__main__':
