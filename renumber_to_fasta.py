@@ -11,7 +11,7 @@ def parseargs():
     parser.add_argument('-f', '--fasta', help='The fasta file')
     parser.add_argument('-o', '--output', help='The name of the output file')
     parser.add_argument('-os', '--offset', type=int, default=0, help='Use this to add missing numbers to the nterm, i.e. fasta starts at res 2')
-    parser.add_argument('-kh', '--keep_het', defualt=False, action="store_true", help='Add all the het atoms back to the residue list at the end')
+    parser.add_argument('-kh', '--keep_het', default=False, action="store_true", help='Add all the het atoms back to the residue list at the end')
     args = parser.parse_args()
     return args
 
