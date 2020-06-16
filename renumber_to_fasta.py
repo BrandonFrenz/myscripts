@@ -11,6 +11,7 @@ def parseargs():
     parser.add_argument('-f', '--fasta', help='The fasta file')
     parser.add_argument('-o', '--output', help='The name of the output file')
     parser.add_argument('-os', '--offset', type=int, default=0, help='Use this to add missing numbers to the nterm, i.e. fasta starts at res 2')
+    parser.add_argument('-kh', '--keep_het', defualt=False, action="store_true", help='Add all the het atoms back to the residue list at the end')
     args = parser.parse_args()
     return args
 
@@ -49,13 +50,14 @@ def main():
     aln_seq = align(seq, fasta_seq)
 
     renumbered_resis = renumber_residues(target_resis, args.chain, aln_seq, args.offset)
-    het_resis = []
-    for res in resis:
-        record = res.atoms[0].record
-        if record == 'HETATM':
-            het_resis.append(res)
-    for res in het_resis:
-        renumbered_resis.append(res)
+    if args.keep_het == True:
+        het_resis = []
+        for res in resis:
+            record = res.atoms[0].record
+            if record == 'HETATM':
+                het_resis.append(res)
+        for res in het_resis:
+            renumbered_resis.append(res)
     pdbtools.write_resis_to_pdb(renumbered_resis, args.output, False)
 
 if __name__ == '__main__':
