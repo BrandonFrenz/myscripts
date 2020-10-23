@@ -11,5 +11,5 @@ pdbs = args.structures
 count = 0
 for i in pdbs:
     count+=1
-    print(i)
+    print i
     os.system(' mv %s %s%s.pdb ' % (i,name,count) )

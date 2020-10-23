@@ -189,6 +189,11 @@ def strip_non_protein(residues):
             stripped.append(residue)
     return stripped
 
+def set_full_occupancy(residues):
+    for res in residues:
+        for atom in res.atoms:
+            atom.occupancy = " 1.00"
+
 
 #this function will result in ter statements being added whereever non continuous residue numbering occurs
 def add_ters_to_noncontres(residues):
@@ -270,8 +275,10 @@ def atomlist_GDTha(atoms1,atoms2):
         atomit+=1
     return GDTha/(atomit*4)
 
-def get_backbones(res):
-    backbones = [' N  ',' CA ',' C  ',' CB ']
+def get_backbones(res, include_cb=True):
+    backbones = [' N  ',' CA ',' C  ']
+    if include_cb:
+        backbones.append(' CB ')
     resbb = []
     for atom in res.atoms:
         if atom.atomid in backbones:
@@ -288,6 +295,26 @@ def atom_dist(atom1,atom2):
 
     dist = np.linalg.norm(firstcoords-secondcoords)
     return dist
+
+def res_distance(res1, res2):
+    closest_dist = None
+    for atom1 in res1.atoms:
+        for atom2 in res2.atoms:
+            dist = atom_dist(atom1, atom2)
+            if closest_dist == None or dist < closest_dist:
+                closest_dist = dist
+    return closest_dist
+
+def connection_distance(res1, res2):
+    res1C = None
+    for atom in res1.atoms:
+        if atom.atomid == ' C  ':
+            res1C = atom
+    res2N = None
+    for atom in res2.atoms:
+        if atom.atomid == ' N  ':
+            res2N = atom
+    return atom_dist(res1C, res2N)
 
 
 def get_cas(residues):
@@ -453,6 +480,12 @@ class Residue:
                 return atom
         print('residue',self.name,self.num,'has no CA. exiting')
         exit()
+
+    def is_het(self):
+        if self.atoms[0].record == 'HETATM':
+            return True
+        else:
+            return False
 
     #def __eq__(self,other):
     #    if type(other) == type(self):

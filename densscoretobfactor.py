@@ -36,7 +36,6 @@ def main():
     for i, res in enumerate(residues):
         dens_score = dens_scores[i]
         for atom in res.atoms:
-            temp = str(round(dens_score, 2))
             atom.tempfact = str(round(dens_score, 2))
     pdbtools.write_resis_to_pdb(residues, args.output)
 

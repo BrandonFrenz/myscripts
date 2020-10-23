@@ -5,7 +5,7 @@ import pdbtools
 def main():
     args = parseargs()
     resis = pdbtools.get_unopened_residue_list(args.pdb)
-    print(len(resis))
+    print len(resis)
 
 def parseargs():
     parser = argparse.ArgumentParser()

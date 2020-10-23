@@ -1,6 +1,6 @@
 <ROSETTASCRIPTS>
     <SCOREFXNS>
-        <ScoreFunction name="dens_sf" weights="beta_cart" symmetric="0">
+        <ScoreFunction name="dens_sf" weights="ref2015_cart" symmetric="0">
             <Reweight scoretype="elec_dens_fast" weight="20.0"/>
         </ScoreFunction>
     </SCOREFXNS>
