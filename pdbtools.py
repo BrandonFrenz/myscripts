@@ -147,8 +147,11 @@ def get_residue_list(pdbfile):
                 atom = atom_from_pdbline(line)
                 currentres.atoms.append(atom)
         linecount+=1
-    currentres.isterm = True
-    residues.append(currentres)
+    if currentres != '':
+        currentres.isterm = True
+        residues.append(currentres)
+    else:
+        print('Warning: no residues found in', pdbfile)
     return residues
 
 def count_cas(residues):
@@ -194,6 +197,10 @@ def set_full_occupancy(residues):
         for atom in res.atoms:
             atom.occupancy = " 1.00"
 
+def clear_segid(residues):
+    for res in residues:
+        for atom in res.atoms:
+            atom.segid = "    "
 
 #this function will result in ter statements being added whereever non continuous residue numbering occurs
 def add_ters_to_noncontres(residues):
@@ -315,6 +322,21 @@ def connection_distance(res1, res2):
         if atom.atomid == ' N  ':
             res2N = atom
     return atom_dist(res1C, res2N)
+
+def res_ca_distance(res1, res2):
+    res1CA = None
+    res2CA = None
+    for atom in res1.atoms:
+        if atom.atomid == ' CA ':
+            res1CA = atom
+    for atom in res2.atoms:
+        if atom.atomid == ' CA ':
+            res2CA = atom
+    if res1CA == None or res2CA == None:
+        print('No CA atoms found in one of the residues exiting', res1.num, res1.name, res2.num, res2.name)
+        exit()
+    else:
+        return atom_dist(res1CA, res2CA)
 
 
 def get_cas(residues):
