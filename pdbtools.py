@@ -36,12 +36,16 @@ def convert_resis_to_ala(pdb,residuestochange):
     
     return newpdb
 
-def convert_to_gly(residue):
+def mutate_residue(residue, newname):
     backbones = get_backbones(residue)
     residue.atoms = backbones
-    residue.name = 'GLY'
+    residue.name = newname
     return residue
-     
+
+def convert_to_gly(residue):
+    mutate_residue(residue, 'GLY')
+    return residue
+    
 
 def convert_resis(pdb,residuestochange,newrestype):
     newpdb = []
@@ -192,6 +196,13 @@ def strip_non_protein(residues):
             stripped.append(residue)
     return stripped
 
+def is_protein(residue):
+    if residue.name in amino_acids.longer_names:
+        return True
+    else:
+        return False
+
+
 def set_full_occupancy(residues):
     for res in residues:
         for atom in res.atoms:
@@ -283,7 +294,7 @@ def atomlist_GDTha(atoms1,atoms2):
     return GDTha/(atomit*4)
 
 def get_backbones(res, include_cb=True):
-    backbones = [' N  ',' CA ',' C  ']
+    backbones = [' N  ',' CA ',' C  ', ' O  ']
     if include_cb:
         backbones.append(' CB ')
     resbb = []
@@ -470,13 +481,26 @@ def make_point_to_MG(point,resnum):
 def get_resid(residue):
     return (residue.name,residue.chain,residue.num,residue.icode)
 
-def backbone_rmsd(res1,res2):
-    bb1 = get_backbones(res1)
-    bb2 = get_backbones(res2)
+def backbone_rmsd(res1, res2, include_cb=True):
+    bb1 = get_backbones(res1, include_cb)
+    bb2 = get_backbones(res2, include_cb)
     if len(bb1) != len(bb2):
         print('warning backbones are not equal in length returning -1 for rmsd')
         return -1
     return atomlist_rms(bb1,bb2)
+
+def get_residues_backbone_rmsd(reslist1, reslist2, include_cb=True):
+    backbones1 = []
+    backbones2 = []
+    for res in reslist1:
+        backbones1+=get_backbones(res, include_cb)
+    for res in reslist2:
+        backbones2+=get_backbones(res, include_cb)
+    if len(backbones1) != len(backbones2):
+        print('warning backbones are not equal in length returning -1 for rmsd')
+        print(len(backbones1), len(backbones2))
+        return -1
+    return atomlist_rms(backbones1,backbones2)
 
 #currently a very crude representation of all the fragments
 class FRAGMENT_LIST:
